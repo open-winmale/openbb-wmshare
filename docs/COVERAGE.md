@@ -15,7 +15,7 @@
 | `equity.price.historical` | EquityHistorical | ✅ | ✅ | ✅ | ✅ |
 | `equity.price.quote` | EquityQuote | ✅ | ✅ | ✅ | ✅ |
 | `equity.search` | EquitySearch | ✅ | ✅ | ✅ | ✅ |
-| `equity.profile` | EquityInfo | ⚠️ | ⚠️ | ❌ | ⚠️ 美股 400 |
+| `equity.profile` | EquityInfo | ⚠️ | ⚠️ | ⚠️ | 美股 400 已修（§2.2）；industry_name 待接线 |
 | `equity.fundamental.income` | IncomeStatement | ✅ | ⛔ | ⛔ | ⚠️ |
 | `equity.fundamental.balance` | BalanceSheet | ✅ | ⛔ | ⛔ | ⚠️ |
 | `equity.fundamental.cash` | CashFlowStatement | ✅ | ⛔ | ⛔ | ⚠️ |

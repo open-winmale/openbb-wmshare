@@ -113,7 +113,8 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 | `index.available` | cn | 全部可用指数键，无需凭证 |
 
 **完整覆盖矩阵**（含每个端点逐市场的能力与限制）见 [docs/COVERAGE.md](docs/COVERAGE.md)；
-**已知数据缺口与后续补充方案**见 [docs/GAPS.md](docs/GAPS.md)。
+**已知数据缺口与后续补充方案**见 [docs/GAPS.md](docs/GAPS.md)；
+**上游 / SDK 缺陷清单**（有数据但行为错的问题登记）见 [docs/BUGS.md](docs/BUGS.md)。
 
 ## 使用约定
 

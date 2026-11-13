@@ -1,8 +1,10 @@
 # 数据缺口与补齐计划
 
 本文件回答两个问题：**wmshare 最缺什么数据能力**，以及**每个缺口该在哪一层补**。
+「有数据但行为错」的缺陷清单（SDK/script/数据面）单独登记在 [BUGS.md](BUGS.md)。
 
-验证口径：2026-11-13 真实取数（wmshare 1.19.1 / OpenBB 5.0）。所有「有/无」结论均附复现命令。
+验证口径：2026-11-13 真实取数（wmshare 1.19.1 / OpenBB 5.0）；2026-11-14 补充探测
+（美股行业、分时窗口、港美 store.get 通路）。所有「有/无」结论均附复现命令。
 
 ---
 
@@ -95,6 +97,12 @@ hk.eval_result('return store.get("fin.income", "hk.00700", 2025, "Q4")')
 **验收**：`client.call("rptdom.statement", sym="00700", domain="fin.income_statement")` 返回非空，
 且字段与 A 股同口径（同名 + 同单位）。
 
+**过渡通路（provider 侧，未实施）**：script 修复前，provider 理论上可经
+`eval_result('return store.get("fin.income", "us.AAPL", <year>, "Q4")')` 直读域宽表先行服务
+（2026-11-14 复测：us 56 字段 / hk 60 字段，USGAAP 驼峰 + `CreatedAt/UpdatedAt/catalog`
+元数据键需清洗）。暂不实施：绕开目录合同会失去单位守护与归一化，且字段映射表应随 script
+修复一起定稿，避免两套口径。登记于 [BUGS.md S-2](BUGS.md#s-2-rptdomstatement-港美返空数据实际在库--open)。
+
 ### A2. 季度报表（A 股季报）
 
 **现状**：`rptdom.statement_years` 只认 `:Q4` 档，`fiscal_period` 恒为 `FY`。
@@ -130,6 +138,15 @@ opts={"n": 4, "sampling": "Q3"})` 返回季报行。
 ## 2. B 类缺口：script 已暴露、provider 未接（本仓可独立完成）
 
 这是投入产出比最高的一批。全部已 live 验证上游返回非空。
+
+**2026-11-14 补充探测**：
+- **美股行业数据确认存在**：`stocks.query_list`(us) 行含 `industry`（`industry.Y070102`）与
+  `industry_name`（英文名）；`$INDUSTRY_CUR("AAPL")` 返回 `industry.Y100103`。低成本名称路径：
+  `stocks.industry_members(ind="industry.Y100103")` 仅 19 行即含 `industry_name`
+  （"Consumer Electronics"）。注意 `stocks.query_list`(us) 全表单次 ~851k EC
+  （[BUGS.md D-3](BUGS.md#d-3-stocksquery_listus-单次-851k-ec--open成本警示非错误)），
+  禁止按次全表拉取。
+- 港美三表 `store.get` 过渡通路复测通过，见 A1。
 
 ### 2.1 P0：✅ 已完成（阶段 0，2026-11-13）
 
@@ -204,7 +221,7 @@ obb.wmshare.cbond_board()  # cbond.board
 | 缺口 | 现状 | 补法 |
 |---|---|---|
 | ETF 档案 / 持仓 / 跟踪指数 | 只有 `kline.is_etf` 布尔 + ETF 日线 | airflow 新增 ETF 元数据采集（发行公告/定期持仓披露） |
-| 分钟级历史 | 只有当日 `query_min1_live`，无回溯 | airflow 落分钟 bar（存储成本高，需先议 TTL） |
+| 分钟级历史 | 只有当日 `query_min1_live`，无回溯。窗口口径（2026-11-14 归档）：仅交易日盘后 ~36h 内可取；美股仅自身盘中时段写入（北京时间夜间的白天查询为空）；非交易日且超 36h 返回 `None`（SDK docstring「休市返回上一交易日」与实测不符，见 [BUGS.md SDK-6](BUGS.md#sdk-6-min1-休市行为与-docstring-不符--open)） | airflow 落分钟 bar（存储成本高，需先议 TTL） |
 | 期权 / 加密 / 外汇 / 固收 | 完全不在数据面 | 不在 wmshare 定位内，建议独立 provider |
 | 全市场分红/解禁日历 | 无跨标的事件流函数 | airflow 建事件流索引，或在 script 加轻量聚合 |
 | 中信行业估值 | `indices.trend` 覆盖申万一级 31 + 红利 14，中信无 | airflow 补中信行业数据 |
