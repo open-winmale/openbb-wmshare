@@ -8,22 +8,26 @@
 
 ---
 
-## 一、已注册端点（15 个标准模型）
+## 一、已注册端点（19 个标准模型）
 
 | OpenBB 命令 | 标准模型 | cn | hk | us | 状态 |
 |---|---|---|---|---|---|
 | `equity.price.historical` | EquityHistorical | ✅ | ✅ | ✅ | ✅ |
 | `equity.price.quote` | EquityQuote | ✅ | ✅ | ✅ | ✅ |
 | `equity.search` | EquitySearch | ✅ | ✅ | ✅ | ✅ |
-| `equity.profile` | EquityInfo | ⚠️ | ⚠️ | ⚠️ | 美股 400 已修（§2.2）；industry_name 待接线 |
+| `equity.profile` | EquityInfo | ✅ | ⚠️ | ⚠️ | hk 行业名待实测；industry_name 走低成本 `industry_members` 路径 |
 | `equity.fundamental.income` | IncomeStatement | ✅ | ⛔ | ⛔ | ⚠️ |
 | `equity.fundamental.balance` | BalanceSheet | ✅ | ⛔ | ⛔ | ⚠️ |
 | `equity.fundamental.cash` | CashFlowStatement | ✅ | ⛔ | ⛔ | ⚠️ |
 | `equity.fundamental.metrics` | KeyMetrics | ✅ | ✅ | ✅ | ✅ 仅 10 码 |
 | `equity.fundamental.ratios` | FinancialRatios | ✅ | ⛔ | ⛔ | ⚠️ 本地重算 |
 | `equity.fundamental.dividends` | HistoricalDividends | ✅ | ✅ | ✅ | ✅ |
+| `equity.fundamental.trailing_dividend_yield` | TrailingDividendYield | ✅ | ✅ | ✅ | 时点值（TTM），无历史序列；`limit` 无效 |
 | `equity.calendar.dividend` | CalendarDividend | ✅ | ✅ | ✅ | ⚠️ 强制 symbol |
+| `equity.discovery.gainers` | EquityGainers | ✅ | ⛔ | ⛔ | ⚠️ 仅 symbol/name/percent（上游无 price/change） |
+| `equity.discovery.losers` | EquityLosers | ✅ | ⛔ | ⛔ | ⚠️ 同上 |
 | `index.price.historical` | IndexHistorical | ✅ | ⛔ | ⛔ | 别名需转规范码，见 §2.1 |
+| `index.snapshots` | IndexSnapshots | ✅ | ⛔ | ⛔ | 全宇宙单次批量；`region` 仅 cn |
 | `index.constituents` | IndexConstituents | ✅ | ⛔ | ⛔ | ✅ |
 | `index.search` | IndexSearch | ✅ | ⛔ | ⛔ | ✅ |
 | `index.available` | AvailableIndices | ✅ | ⛔ | ⛔ | ✅ |

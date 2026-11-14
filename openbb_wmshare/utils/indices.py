@@ -77,3 +77,18 @@ def index_search_terms(key: str) -> str:
 def index_exchange(key: str) -> str | None:
     """Listing venue for an index key, when known."""
     return INDEX_EXCHANGE.get(key.strip().lower())
+
+
+def alias_for_canonical(code: str) -> str | None:
+    """Reverse of :func:`openbb_wmshare.utils.index_canon.resolve_index_canonical`.
+
+    Upstream payloads (``kline.query_index_last_live_many``) are keyed by the
+    canonical ``<nnnnnn>.INDEX`` code, while every other endpoint in this
+    provider speaks ``index.hs300``-style keys, so responses are re-keyed
+    through this lookup. ``399300.INDEX`` → ``index.hs300``; an unknown code
+    returns ``None`` and callers keep the canonical code visible rather than
+    inventing a key.
+    """
+    from openbb_wmshare.utils.index_canon import reverse_table
+
+    return reverse_table().get(str(code or "").strip().upper())

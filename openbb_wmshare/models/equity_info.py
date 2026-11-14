@@ -112,7 +112,16 @@ class WmshareEquityInfoFetcher(Fetcher[WmshareEquityInfoQueryParams, list[Wmshar
             )
             if not values:
                 continue
-            rows.append(_to_info_row(values, parsed.canonical, parsed.market, parsed.code))
+            industry_key = values.get("$INDUSTRY_CUR")
+            rows.append(
+                _to_info_row(
+                    values,
+                    parsed.canonical,
+                    parsed.market,
+                    parsed.code,
+                    industry_name=await _resolve_industry_name(client, industry_key),
+                )
+            )
         return rows
 
     @staticmethod
@@ -130,13 +139,21 @@ class WmshareEquityInfoFetcher(Fetcher[WmshareEquityInfoQueryParams, list[Wmshar
 _CURRENCY_BY_MARKET = {"cn": "CNY", "hk": "HKD", "us": "USD"}
 
 
-def _to_info_row(values: dict, symbol: str, market: str, code: str) -> dict:
+def _to_info_row(
+    values: dict,
+    symbol: str,
+    market: str,
+    code: str,
+    *,
+    industry_name: str | None = None,
+) -> dict:
     """Map a wmshare metric bundle onto OpenBB's ``EquityInfo`` fields."""
     return {
         "symbol": symbol,
         "name": values.get("$NAME"),
         "stock_exchange": _exchange_for(code, market),
         "industry_category": values.get("$INDUSTRY_CUR"),
+        "industry_name": industry_name,
         # Not requested for markets where the code is undefined, so this stays
         # None there instead of failing the whole row.
         "style_industry": values.get("$STYLE_INDUSTRY"),
@@ -145,6 +162,29 @@ def _to_info_row(values: dict, symbol: str, market: str, code: str) -> dict:
         "currency": _CURRENCY_BY_MARKET.get(market),
         "entity_status": "active",
     }
+
+
+async def _resolve_industry_name(client: Any, industry_key: str | None) -> str | None:
+    """Resolve an industry key (``industry.S340501``) to its display name.
+
+    One cheap request via ``stocks.industry_members`` — verified live for
+    A-share SW codes and US Y-codes (2026-11-14, "Consumer Electronics" for
+    ``industry.Y100103``). The full-table alternative is off the table: US
+    ``stocks.query_list`` costs ~851k EC per call (BUGS.md D-3). A miss is a
+    valid outcome for a display name, so an empty result yields ``None``.
+    """
+    if not industry_key:
+        return None
+    members = await call(
+        client.call,
+        "stocks.industry_members",
+        ind=industry_key,
+        context=f"stocks.industry_members({industry_key})",
+    )
+    for row in members or []:
+        if isinstance(row, dict) and row.get("industry_name"):
+            return str(row["industry_name"])
+    return None
 
 
 def _exchange_for(code: str, market: str) -> str | None:

@@ -48,6 +48,10 @@ def call(model: str, **params):
         "IndexHistorical": obb.index.price.historical,
         "IndexSearch": obb.index.search,
         "AvailableIndices": obb.index.available,
+        "IndexSnapshots": obb.index.snapshots,
+        "EquityGainers": obb.equity.discovery.gainers,
+        "EquityLosers": obb.equity.discovery.losers,
+        "TrailingDividendYield": obb.equity.fundamental.trailing_dividend_yield,
     }[model]
     return command(**params, provider="wmshare")
 
@@ -236,3 +240,56 @@ def test_missing_credentials_surface_as_auth_error(monkeypatch):
             call("EquityQuote", symbol="600519.SH")
     finally:
         clear_client_cache()
+
+
+# ---------------------------------------------------------------- phase-1 batch
+
+
+@requires_credentials
+def test_trailing_dividend_yield_is_live_value():
+    result = call("TrailingDividendYield", symbol="600519.SH").results
+
+    assert len(result) == 1
+    row = result[0]
+    assert row.symbol == "600519.SH"
+    assert 0 < row.trailing_dividend_yield < 1
+    assert row.date is not None
+
+
+@requires_credentials
+def test_index_snapshots_cover_the_universe():
+    result = call("IndexSnapshots").results
+
+    assert len(result) >= 10
+    symbols = {row.symbol for row in result}
+    assert "index.hs300" in symbols
+    hs300 = next(row for row in result if row.symbol == "index.hs300")
+    assert hs300.close and hs300.close > 0
+    assert hs300.currency == "CNY"
+    # prev_close is derived from close - change in the provider.
+    if hs300.change is not None:
+        assert hs300.prev_close == pytest.approx(hs300.close - hs300.change, abs=1e-3)
+
+
+@requires_credentials
+def test_gainers_descend_and_losers_ascend():
+    gainers = call("EquityGainers", limit=5).results
+    losers = call("EquityLosers", limit=5).results
+
+    assert len(gainers) == 5 and len(losers) == 5
+    assert gainers[0].change_percent >= gainers[-1].change_percent
+    assert losers[0].change_percent <= losers[-1].change_percent
+    assert gainers[0].change_percent > 0 > losers[0].change_percent
+    # Upstream ranking carries percent only; provider must leave price/change unset.
+    assert gainers[0].price is None and gainers[0].change is None
+
+
+@requires_credentials
+def test_profile_resolves_industry_name_for_us_and_cn():
+    """$INDUSTRY_CUR works on US Y-codes; the name comes from industry_members."""
+    cn = call("EquityInfo", symbol="600519.SH").results[0]
+    assert cn.industry_name, "cn industry_name missing"
+
+    us = call("EquityInfo", symbol="AAPL").results[0]
+    assert us.industry_category == "industry.Y100103"
+    assert us.industry_name == "Consumer Electronics"

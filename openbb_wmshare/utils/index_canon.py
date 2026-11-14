@@ -80,6 +80,21 @@ def resolve_index_canonical(key: str) -> str | None:
     return _table().get(lower)
 
 
+@lru_cache(maxsize=1)
+def reverse_table() -> dict[str, str]:
+    """Canonical code → user-facing ``index.*`` key.
+
+    Upstream payloads (e.g. ``kline.query_index_last_live_many``) are keyed by
+    canonical code; this re-keys them for output. The packaged snapshot is
+    1:1, so the first matching alias is deterministic; if upstream ever ships
+    duplicate aliases the alphabetically first wins to keep output stable.
+    """
+    out: dict[str, str] = {}
+    for alias, code in sorted(_table().items()):
+        out.setdefault(code, f"{_INDEX_KEY_PREFIX}{alias}")
+    return out
+
+
 def is_canonical_index_code(key: str) -> bool:
     """Whether ``key`` is already a canonical ``<digits>.INDEX`` code."""
     return bool(_CANONICAL_RE.match(str(key or "").strip()))

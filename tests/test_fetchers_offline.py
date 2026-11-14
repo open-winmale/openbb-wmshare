@@ -29,7 +29,13 @@ from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
 from openbb_wmshare.models.index_constituents import WmshareIndexConstituentsFetcher
 from openbb_wmshare.models.index_historical import WmshareIndexHistoricalFetcher
 from openbb_wmshare.models.index_search import WmshareIndexSearchFetcher
+from openbb_wmshare.models.index_snapshots import WmshareIndexSnapshotsFetcher
 from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
+from openbb_wmshare.models.market_movers import (
+    WmshareEquityGainersFetcher,
+    WmshareEquityLosersFetcher,
+)
+from openbb_wmshare.models.trailing_dividend_yield import WmshareTrailingDivYieldFetcher
 
 
 def run(fetcher: Any, params: dict) -> Any:
@@ -293,6 +299,10 @@ def test_provider_registers_expected_models():
         "IndexHistorical",
         "IndexSearch",
         "AvailableIndices",
+        "IndexSnapshots",
+        "EquityGainers",
+        "EquityLosers",
+        "TrailingDividendYield",
     }
     assert set(wmshare_provider.fetcher_dict) == expected
 
@@ -368,3 +378,82 @@ def test_all_fetchers_defer_credentials_to_the_sdk():
     """
     for model_name, fetcher in wmshare_provider.fetcher_dict.items():
         assert fetcher.require_credentials is False, model_name
+
+
+# ---------------------------------------------------------------- phase-1 batch
+
+
+def test_trailing_dividend_yield_maps_ttm_value(fake_client):
+    result = run(WmshareTrailingDivYieldFetcher, {"symbol": "600519"})
+
+    row = result[0]
+    assert row.symbol == "600519.SH"
+    assert row.trailing_dividend_yield == pytest.approx(0.0373)
+    assert row.date is not None
+    assert row.currency == "CNY"
+
+
+def test_trailing_dividend_yield_multiple_markets(fake_client):
+    result = run(WmshareTrailingDivYieldFetcher, {"symbol": "600519,00700.HK"})
+    assert {row.symbol for row in result} == {"600519.SH", "00700.HK"}
+
+
+def test_index_snapshots_rekey_to_alias(fake_client):
+    result = run(WmshareIndexSnapshotsFetcher, {})
+
+    assert result
+    by_symbol = {row.symbol: row for row in result}
+    # The canon snapshot maps hs300 -> 399300.INDEX; output must speak the
+    # user-facing key, not the upstream canonical code.
+    assert "index.hs300" in by_symbol
+    snap = by_symbol["index.hs300"]
+    assert snap.close is not None
+    assert snap.change is not None
+    # prev_close derived from close - change so consumers need no arithmetic.
+    assert snap.prev_close == pytest.approx(snap.close - snap.change, abs=1e-4)
+    assert snap.turnover_rate is not None
+
+
+def test_gainers_descending_and_losers_ascending(fake_client):
+    gainers = run(WmshareEquityGainersFetcher, {"limit": 3})
+    losers = run(WmshareEquityLosersFetcher, {"limit": 3})
+
+    assert gainers[0].symbol == "300528.SZ"  # percent 0.2001, the largest
+    assert losers[0].symbol == "000001.SZ"  # percent -0.0198, the smallest
+    assert gainers[0].change_percent == pytest.approx(0.2001)
+    # Upstream publishes percent only; price/change must stay unset, not invented.
+    assert gainers[0].price is None
+    assert gainers[0].change is None
+    assert losers[0].change_percent == pytest.approx(-0.0198)
+
+
+def test_movers_symbols_are_canonical(fake_client):
+    result = run(WmshareEquityGainersFetcher, {"limit": 3})
+    assert all("." in row.symbol for row in result)
+
+
+def test_equity_info_resolves_industry_name(fake_client):
+    info = run(WmshareEquityInfoFetcher, {"symbol": "600519"})[0]
+    assert info.industry_category == "industry.S340501"
+    assert info.industry_name == "白酒"
+
+
+def test_equity_info_industry_name_missing_key_is_none(fake_client, monkeypatch):
+    """No industry key → the name lookup makes no request and resolves to None."""
+    real_call = fake_client.call
+
+    def guarded(name, /, **kwargs):
+        if name == "stocks.industry_members":
+            raise AssertionError("industry_name lookup must not fire without a key")
+        return real_call(name, **kwargs)
+
+    monkeypatch.setattr(fake_client, "call", guarded)
+    monkeypatch.setattr(
+        fake_client.indicator,
+        "metrics",
+        lambda symbol, codes, fut_symbol=None: {"$NAME": "无名氏"},
+    )
+    info = run(WmshareEquityInfoFetcher, {"symbol": "600519"})[0]
+    assert info.industry_category is None
+    assert info.industry_name is None
+    assert info.name == "无名氏"

@@ -266,6 +266,36 @@ class _Kline:
             series = series[: max(1, len(series) // 5)]
         return series
 
+    def index_live_many(self, keys: list[str]) -> dict[str, dict]:
+        """Emulate ``kline.query_index_last_live_many``: canon-keyed snapshots.
+
+        Live rows key by ``<nnnnnn>.INDEX`` and carry a decimal ``percent``
+        (unlike index *bars*, where percent is a percentage number), no
+        ``prev_close``, and ``turnover_rate``/``amplitude`` extras.
+        """
+        snaps: dict[str, dict] = {}
+        for sym in keys:
+            bars = [b for b in _FULL_SERIES if b["date"] >= "2026-10-01"]
+            latest, previous = bars[-1], bars[-2]
+            snaps[str(sym).upper()] = {
+                "amount": latest["amount"],
+                "amplitude": 0.0125,
+                "asof": "2026-10-30 15:00:00",
+                "change": round(latest["close"] - previous["close"], 4),
+                "close": latest["close"],
+                "date": latest["date"],
+                "high": latest["high"],
+                "low": latest["low"],
+                "open": latest["open"],
+                "percent": 0.001,
+                "refreshed_at": "2026-10-30 15:00:30",
+                "source": "tencent_index",
+                "symbol": str(sym).upper(),
+                "turnover_rate": 0.0097,
+                "volume": latest["volume"],
+            }
+        return snaps
+
     def anchor_bars(self, symbol: str, limit: int | None, anchor_date: str | None) -> list[dict]:
         """Emulate ``kline.query_at_anchor`` for index bars.
 
@@ -479,6 +509,8 @@ class FakeClient:
         self.indicator.market = market
         self.info = _Info()
         self.index = _Index()
+        self.screener = self._Screener()
+        self._Screener._outer = self
 
     def call(
         self,
@@ -503,7 +535,31 @@ class FakeClient:
             return self.kline.anchor_bars(
                 kwargs.get("sym"), kwargs.get("limit"), kwargs.get("anchor_date")
             )
+        if name == "kline.query_index_last_live_many":
+            return self.kline.index_live_many(kwargs.get("keys") or [])
+        if name == "stocks.industry_members":
+            return self.industry_members(kwargs.get("ind"))
         raise AssertionError(f"FakeClient.call received an unexpected function: {name}")
+
+    def industry_members(self, ind: str | None) -> list[dict]:
+        """Emulate ``stocks.industry_members``: member rows of one industry."""
+        return [{"symbol": "600519", "name": "贵州茅台", "industry": ind, "industry_name": "白酒"}]
+
+    class _Screener:
+        """Mirror of ``wmshare.api.ScreenerApi``'s used surface."""
+
+        def index_top_movers(self, limit: int = 20, desc: bool = True) -> list[dict]:
+            return self._outer.screener_top_movers(limit, desc)
+
+    def screener_top_movers(self, limit: int, desc: bool) -> list[dict]:
+        """Emulate ``screener.index_top_movers``: symbol/name/percent rows only."""
+        movers = [
+            {"symbol": "300528", "name": "幸福蓝海", "percent": 0.2001},
+            {"symbol": "600519", "name": "贵州茅台", "percent": 0.0102},
+            {"symbol": "000001", "name": "平安银行", "percent": -0.0198},
+        ]
+        rows = sorted(movers, key=lambda r: r["percent"], reverse=desc)
+        return rows[: int(limit)]
 
 
 class FakeCatalog:
@@ -528,40 +584,34 @@ class FakeCatalog:
 def fake_client(monkeypatch: pytest.MonkeyPatch) -> FakeClient:
     """Route every model's client lookups to one ``FakeClient``.
 
-    Patches land on the module that owns the bound name: the statement models
-    reach ``get_client`` through ``_statements``, the rest import it directly.
+    Patches every ``openbb_wmshare.models.*`` module that bound ``get_client``,
+    discovered by package walk so a newly added model cannot silently fall
+    through to the real API (that exact miss once sent a test to production).
+    The statement models reach ``get_client`` through ``_statements``; the
+    discovery walk covers it like any other module.
     """
-    from openbb_wmshare import utils
-    from openbb_wmshare.models import (
-        _statements,
-        dividends,
-        equity_historical,
-        equity_info,
-        equity_quote,
-        financial_ratios,
-        index_constituents,
-        index_historical,
-        key_metrics,
-    )
-    from openbb_wmshare.utils import index_universe
+    import importlib
+    import pkgutil
+
+    from openbb_wmshare import models, utils
 
     client = FakeClient()
 
-    for module in (
-        index_universe,
-        _statements,
-        dividends,
-        equity_historical,
-        equity_info,
-        equity_quote,
-        financial_ratios,
-        index_constituents,
-        index_historical,
-        key_metrics,
-    ):
-        monkeypatch.setattr(module, "get_client", lambda *a, **k: client, raising=True)
+    stub = lambda *a, **k: client  # noqa: E731 - one shared fake for all modules
+    seen: set[str] = set()
+    for info in pkgutil.iter_modules(models.__path__):
+        module = importlib.import_module(f"openbb_wmshare.models.{info.name}")
+        if hasattr(module, "get_client"):
+            monkeypatch.setattr(module, "get_client", stub, raising=True)
+            seen.add(info.name)
+    for info in pkgutil.iter_modules(utils.__path__):
+        module = importlib.import_module(f"openbb_wmshare.utils.{info.name}")
+        if hasattr(module, "get_client"):
+            monkeypatch.setattr(module, "get_client", stub, raising=True)
+            seen.add(info.name)
+    monkeypatch.setattr(utils, "get_client", stub, raising=True)
 
-    monkeypatch.setattr(utils.client, "get_client", lambda *a, **k: client)
+    assert seen, "fixture found no model modules to patch; import layout changed?"
     return client
 
 

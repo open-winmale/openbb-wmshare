@@ -172,6 +172,11 @@ asof 2026-11-13）。快照随包分发，`python tools/refresh_index_canon.py -
 
 ### 2.2 P0：高价值标准模型（上游全就绪）
 
+2026-11-14 阶段 1 首批已接 4 项（#7/#10/#11/#12，见 ✅ 标注）；`EquityPerformance`（#7）经字段
+核对**否决**：标准模型无 `symbol` 参数、`price/change` 必填，是全市场快照语义，与
+`kline.snapshot` 多窗口涨跌对不上，与 #10 涨跌榜重复——不再映射，多窗口涨跌已由
+`equity.price.quote` 覆盖。
+
 | # | OpenBB 命令 | 标准模型 | 上游函数 | 市场 |
 |---|---|---|---|---|
 | 1 | `equity.fundamental.revenue_per_segment` | RevenueBusinessLine | `segments.query_products` / `query_business` | cn |
@@ -180,15 +185,19 @@ asof 2026-11-13）。快照随包分发，`python tools/refresh_index_canon.py -
 | 4 | `equity.key_executives` | KeyExecutives | `equity.query_executives`（12 人，含薪酬/持股/学历） | cn |
 | 5 | `equity.share_statistics` | ShareStatistics | `equity.query_capital_change` + `$EQUITY_TOTAL_SHARES`/`$EQUITY_FREE_SHARES` | cn/hk/us |
 | 6 | `equity.calendar.earnings` | CalendarEarnings | `forecast.disclosure_rows`（财报预约披露日历） | cn |
-| 7 | `equity.price.performance` | PricePerformance | `kline.snapshot` 的 `chg_5d/10d/20d/90d/roi_1y` | cn/hk/us |
+| ~~7~~ | ~~`equity.price.performance`~~ | ~~PricePerformance~~ | ❌ 语义不匹配（见上），不映射 | — |
 | 8 | `equity.screener` | EquityScreener | `screener.query(where, order, limit, offset)` | cn |
 | 9 | `equity.market_snapshots` | MarketSnapshots | `kline.query_last_live_many` / `stocks.query_list` | cn |
-| 10 | `equity.discovery.gainers` / `.losers` | EquityGainers/Losers | `screener.index_top_movers(desc=True/False)` | cn |
-| 11 | `index.snapshots` | IndexSnapshots | `kline.query_index_last_live_many(keys=[...])` | cn |
-| 12 | `equity.fundamental.trailing_dividend_yield` | TrailingDividendYield | `bonus.snapshot_yield_ttm` | cn/hk/us |
+| ✅ 10 | `equity.discovery.gainers` / `.losers` | EquityGainers/Losers | `screener.index_top_movers(desc)`；price/change 上游没有，Data 覆写为 Optional | cn |
+| ✅ 11 | `index.snapshots` | IndexSnapshots | `kline.query_index_last_live_many(keys=[...])`；规范码反键回 `index.*`；`region` 含命令默认 us（恒返 cn 数据，见模型描述） | cn |
+| ✅ 12 | `equity.fundamental.trailing_dividend_yield` | TrailingDividendYield | `dividend.yield_ttm`；时点值单行，`limit` 无效已在描述声明 | cn/hk/us |
 | 13 | `equity.estimates.forward_eps` / `.forward_pe` / `.price_target` | ForwardEpsEstimates 等 | `estimates.query_forecast`（EPS1-4/PE1-4，40 行）+ `query_rating` | cn |
 | 14 | `equity.ownership.institutional` | InstitutionalOwnership | `equity.query_institution_detail/summary` | cn |
 | 15 | `equity.ownership.insider_trading` | InsiderTrading | `equity.query_exec_change` | cn |
+
+另：`equity.profile` 的 `industry_name` 已接（2026-11-14）——`$INDUSTRY_CUR` + 一次廉价的
+`stocks.industry_members` 名称解析（US Y 码实测 "Consumer Electronics"），见
+`models/equity_info.py::_resolve_industry_name`。
 
 ### 2.3 P1：中价值
 

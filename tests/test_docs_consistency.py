@@ -122,6 +122,10 @@ def _command_for(model_name: str) -> str:
         "IndexConstituents": "index.constituents",
         "IndexSearch": "index.search",
         "AvailableIndices": "index.available",
+        "IndexSnapshots": "index.snapshots",
+        "EquityGainers": "equity.discovery.gainers",
+        "EquityLosers": "equity.discovery.losers",
+        "TrailingDividendYield": "equity.fundamental.trailing_dividend_yield",
     }[model_name]
 
 

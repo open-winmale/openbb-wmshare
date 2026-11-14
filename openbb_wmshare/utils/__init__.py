@@ -11,8 +11,13 @@ from openbb_wmshare.utils.client import (
     translate_error,
 )
 from openbb_wmshare.utils.dates import DateRange, chunk_range, resolve_range
-from openbb_wmshare.utils.index_canon import resolve_index_canonical
-from openbb_wmshare.utils.indices import index_exchange, index_name, index_search_terms
+from openbb_wmshare.utils.index_canon import resolve_index_canonical, reverse_table
+from openbb_wmshare.utils.indices import (
+    alias_for_canonical,
+    index_exchange,
+    index_name,
+    index_search_terms,
+)
 from openbb_wmshare.utils.symbols import (
     MARKETS,
     Market,
@@ -27,6 +32,7 @@ __all__ = [
     "DateRange",
     "Market",
     "ParsedSymbol",
+    "alias_for_canonical",
     "call",
     "chunk_range",
     "clear_client_cache",
@@ -39,6 +45,7 @@ __all__ = [
     "require_rows",
     "resolve_index_canonical",
     "resolve_range",
+    "reverse_table",
     "run_sync",
     "split_symbols",
     "translate_error",

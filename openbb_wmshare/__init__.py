@@ -32,7 +32,13 @@ from openbb_wmshare.models.index_historical import (
     WmshareIndexHistoricalFetcher,
 )
 from openbb_wmshare.models.index_search import WmshareIndexSearchFetcher
+from openbb_wmshare.models.index_snapshots import WmshareIndexSnapshotsFetcher
 from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
+from openbb_wmshare.models.market_movers import (
+    WmshareEquityGainersFetcher,
+    WmshareEquityLosersFetcher,
+)
+from openbb_wmshare.models.trailing_dividend_yield import WmshareTrailingDivYieldFetcher
 
 wmshare_provider = Provider(
     name="wmshare",
@@ -59,6 +65,10 @@ wmshare_provider = Provider(
         "IndexConstituents": WmshareIndexConstituentsFetcher,
         "IndexSearch": WmshareIndexSearchFetcher,
         "AvailableIndices": WmshareAvailableIndicesFetcher,
+        "IndexSnapshots": WmshareIndexSnapshotsFetcher,
+        "EquityGainers": WmshareEquityGainersFetcher,
+        "EquityLosers": WmshareEquityLosersFetcher,
+        "TrailingDividendYield": WmshareTrailingDivYieldFetcher,
     },
     repr_name="wmshare (A-share / Hong Kong / US)",
     instructions=(

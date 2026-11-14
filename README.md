@@ -92,22 +92,25 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 
 ## 支持的端点
 
-15 个 OpenBB 标准模型，`provider="wmshare"`：
+19 个 OpenBB 标准模型，`provider="wmshare"`：
 
 | 命令 | 市场 | 说明 |
 |---|---|---|
 | `equity.price.historical` | cn / hk / us | 日/周/月 K，`adjust=none\|qfq\|hfq` |
 | `equity.price.quote` | cn / hk / us | 最新快照 + 均线 + 多窗口涨跌 |
 | `equity.search` | cn / hk / us | 离线代码表检索，无需凭证 |
-| `equity.profile` | cn / hk / us | 名称/行业/组织类型/上市日 |
+| `equity.profile` | cn / hk / us | 名称/行业（含行业名）/组织类型/上市日 |
 | `equity.fundamental.income` | cn | 利润表，一年一行 |
 | `equity.fundamental.balance` | cn | 资产负债表 |
 | `equity.fundamental.cash` | cn | 现金流量表 |
 | `equity.fundamental.metrics` | cn / hk / us | PE/PB/PS/ROE/股息率/PE 十年分位 |
 | `equity.fundamental.ratios` | cn | 毛利率/净利率/ROE/ROA/流动比率等；最新期取平台指标，历史期本地派生 |
 | `equity.fundamental.dividends` | cn / hk / us | 分红历史明细 |
+| `equity.fundamental.trailing_dividend_yield` | cn / hk / us | TTM 股息率（时点值） |
 | `equity.calendar.dividend` | cn / hk / us | 同一数据的日历视图（需传 `symbol`） |
+| `equity.discovery.gainers` / `.losers` | cn | 全市场涨跌榜（上游只有涨跌幅） |
 | `index.price.historical` | cn | 指数日线（自动把 `index.hs300` 转规范码） |
+| `index.snapshots` | cn | 全部指数盘中快照，单次批量 |
 | `index.constituents` | cn | 成分股 + 披露权重 + 市值/估值 |
 | `index.search` | cn | 指数键检索（中英文名），无需凭证 |
 | `index.available` | cn | 全部可用指数键，无需凭证 |
