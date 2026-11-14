@@ -62,6 +62,9 @@ def call(model: str, **params):
         "CalendarEarnings": obb.equity.calendar.earnings,
         "ForwardEpsEstimates": obb.equity.estimates.forward_eps,
         "ForwardPeEstimates": obb.equity.estimates.forward_pe,
+        "IncomeStatementGrowth": obb.equity.fundamental.income_growth,
+        "BalanceSheetGrowth": obb.equity.fundamental.balance_growth,
+        "CashFlowStatementGrowth": obb.equity.fundamental.cash_growth,
     }[model]
     return command(**params, provider="wmshare")
 
@@ -396,3 +399,40 @@ def test_forward_pe_year_series():
     assert result
     assert all(row.year1 is not None for row in result)
     assert all(row.year5 is None for row in result)
+
+
+# ---------------------------------------------------------------- batch 1c
+
+
+@requires_credentials
+@pytest.mark.parametrize(
+    ("model", "command_check"),
+    [
+        ("IncomeStatementGrowth", "total_revenue_growth"),
+        ("BalanceSheetGrowth", "total_assets_growth"),
+        ("CashFlowStatementGrowth", "net_cash_operating_growth"),
+    ],
+)
+def test_growth_models_are_decimals_with_none_bases(model, command_check):
+    result = call(model, symbol="600519.SH", limit=3).results
+
+    assert result
+    for row in result:
+        value = getattr(row, command_check)
+        assert value is None or abs(value) < 50, f"{command_check} out of decimal space"
+
+
+@requires_credentials
+def test_income_growth_matches_statement_levels():
+    """Growth direction must agree with the level series it derives from."""
+    growth = call("IncomeStatementGrowth", symbol="600519.SH", limit=3).results
+    levels = call("IncomeStatement", symbol="600519.SH", limit=4).results
+
+    by_year = {row.period_ending.year: row.total_revenue for row in levels}
+    for row in growth:
+        year = row.period_ending.year
+        prior = by_year.get(year - 1)
+        if row.total_revenue_growth is not None and prior:
+            current = by_year.get(year)
+            if current:
+                assert row.total_revenue_growth == pytest.approx(current / prior - 1, rel=1e-6)

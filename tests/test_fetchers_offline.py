@@ -31,6 +31,11 @@ from openbb_wmshare.models.estimates import (
 )
 from openbb_wmshare.models.filings import WmshareCompanyFilingsFetcher
 from openbb_wmshare.models.financial_ratios import WmshareFinancialRatiosFetcher
+from openbb_wmshare.models.growth import (
+    WmshareBalanceSheetGrowthFetcher,
+    WmshareCashFlowStatementGrowthFetcher,
+    WmshareIncomeStatementGrowthFetcher,
+)
 from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
 from openbb_wmshare.models.index_constituents import WmshareIndexConstituentsFetcher
 from openbb_wmshare.models.index_historical import WmshareIndexHistoricalFetcher
@@ -327,6 +332,9 @@ def test_provider_registers_expected_models():
         "CalendarEarnings",
         "ForwardEpsEstimates",
         "ForwardPeEstimates",
+        "IncomeStatementGrowth",
+        "BalanceSheetGrowth",
+        "CashFlowStatementGrowth",
     }
     assert set(wmshare_provider.fetcher_dict) == expected
 
@@ -609,3 +617,40 @@ def test_forward_pe_maps_year_series(fake_client):
     assert agg.year1 == pytest.approx(19.11)
     assert agg.year4 == pytest.approx(16.74)
     assert agg.year5 is None  # upstream publishes 4 predicted years only
+
+
+# ---------------------------------------------------------------- batch 1c
+
+
+def test_income_growth_yoy_against_prior_period(fake_client):
+    result = run(WmshareIncomeStatementGrowthFetcher, {"symbol": "600519", "limit": 3})
+
+    assert len(result) == 3
+    latest = result[0]
+    assert latest.period_ending.year == 2025
+    # growth must equal the ratio implied by the canned statement fixture
+    expected = 168_838_102_514.79 / 170_899_152_276.34 - 1
+    assert latest.total_revenue_growth == pytest.approx(expected, rel=1e-9)
+    assert latest.net_profit_growth == pytest.approx(
+        90_000_000_000.0 / 88_000_000_000.0 - 1, rel=1e-9
+    )
+
+
+def test_income_growth_none_without_base(fake_client):
+    """The oldest period has no prior year in the canned window → None, not 0."""
+    result = run(WmshareIncomeStatementGrowthFetcher, {"symbol": "600519", "limit": 3})
+    oldest = result[-1]
+    assert oldest.total_revenue_growth is None
+
+
+def test_balance_growth_fields(fake_client):
+    result = run(WmshareBalanceSheetGrowthFetcher, {"symbol": "600519", "limit": 3})
+    latest = result[0]
+    assert latest.total_assets_growth is not None
+    assert abs(latest.total_assets_growth) < 10  # decimal space
+
+
+def test_cashflow_growth_fields(fake_client):
+    result = run(WmshareCashFlowStatementGrowthFetcher, {"symbol": "600519", "limit": 2})
+    latest = result[0]
+    assert latest.net_cash_operating_growth is not None

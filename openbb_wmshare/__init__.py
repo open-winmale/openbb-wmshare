@@ -32,6 +32,11 @@ from openbb_wmshare.models.estimates import (
 )
 from openbb_wmshare.models.filings import WmshareCompanyFilingsFetcher
 from openbb_wmshare.models.financial_ratios import WmshareFinancialRatiosFetcher
+from openbb_wmshare.models.growth import (
+    WmshareBalanceSheetGrowthFetcher,
+    WmshareCashFlowStatementGrowthFetcher,
+    WmshareIncomeStatementGrowthFetcher,
+)
 from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
 from openbb_wmshare.models.index_constituents import WmshareIndexConstituentsFetcher
 from openbb_wmshare.models.index_historical import (
@@ -93,6 +98,9 @@ wmshare_provider = Provider(
         "CalendarEarnings": WmshareCalendarEarningsFetcher,
         "ForwardEpsEstimates": WmshareForwardEpsEstimatesFetcher,
         "ForwardPeEstimates": WmshareForwardPeEstimatesFetcher,
+        "IncomeStatementGrowth": WmshareIncomeStatementGrowthFetcher,
+        "BalanceSheetGrowth": WmshareBalanceSheetGrowthFetcher,
+        "CashFlowStatementGrowth": WmshareCashFlowStatementGrowthFetcher,
     },
     repr_name="wmshare (A-share / Hong Kong / US)",
     instructions=(

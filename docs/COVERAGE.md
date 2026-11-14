@@ -8,7 +8,7 @@
 
 ---
 
-## 一、已注册端点（29 个标准模型）
+## 一、已注册端点（32 个标准模型）
 
 | OpenBB 命令 | 标准模型 | cn | hk | us | 状态 |
 |---|---|---|---|---|---|
@@ -33,6 +33,9 @@
 | `equity.calendar.earnings` | CalendarEarnings | ✅ | ⛔ | ⛔ | **symbol 必填**（上游按标的查询）；report_date←预约日；eps_* 上游无 |
 | `equity.estimates.forward_eps` | ForwardEpsEstimates | ✅ | ⛔ | ⛔ | 按机构逐行 + 近六月平均聚合行；mean=eps1；无 low/high/median 分布 |
 | `equity.estimates.forward_pe` | ForwardPeEstimates | ✅ | ⛔ | ⛔ | year1..4←PE1..4（上游仅 4 年） |
+| `equity.fundamental.income_growth` | IncomeStatementGrowth | ✅ | ⛔ | ⛔ | 本地 YoY（上游无行项增长码）；零基/缺基为 None |
+| `equity.fundamental.balance_growth` | BalanceSheetGrowth | ✅ | ⛔ | ⛔ | 同上 |
+| `equity.fundamental.cash_growth` | CashFlowStatementGrowth | ✅ | ⛔ | ⛔ | 同上 |
 | `equity.calendar.dividend` | CalendarDividend | ✅ | ✅ | ✅ | ⚠️ 强制 symbol |
 | `equity.discovery.gainers` | EquityGainers | ✅ | ⛔ | ⛔ | ⚠️ 仅 symbol/name/percent（上游无 price/change） |
 | `equity.discovery.losers` | EquityLosers | ✅ | ⛔ | ⛔ | ⚠️ 同上 |

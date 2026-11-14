@@ -251,3 +251,27 @@ def compute_ratios(
 
     records.sort(key=lambda r: str(r.get("period_ending") or ""), reverse=True)
     return records
+
+
+def compute_growth(
+    records: list[dict[str, Any]],
+    items: list[str],
+) -> list[dict[str, Any]]:
+    """Attach ``<item>_growth`` (YoY, decimal) to pivoted statement records.
+
+    ``records`` must be the newest-first output of :func:`pivot`; each item's
+    growth compares a period against the next-older record. Periods without a
+    prior period, or with a zero/missing base, get ``None`` — never a silent 0
+    or a made-up infinity.
+    """
+    for index, record in enumerate(records):
+        prior = records[index + 1] if index + 1 < len(records) else None
+        for item in items:
+            growth_key = f"{item}_growth"
+            current = record.get(item)
+            base = prior.get(item) if prior else None
+            if isinstance(current, int | float) and isinstance(base, int | float) and base != 0:
+                record[growth_key] = current / base - 1
+            else:
+                record[growth_key] = None
+    return records

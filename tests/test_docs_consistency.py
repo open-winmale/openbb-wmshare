@@ -136,6 +136,9 @@ def _command_for(model_name: str) -> str:
         "CalendarEarnings": "equity.calendar.earnings",
         "ForwardEpsEstimates": "equity.estimates.forward_eps",
         "ForwardPeEstimates": "equity.estimates.forward_pe",
+        "IncomeStatementGrowth": "equity.fundamental.income_growth",
+        "BalanceSheetGrowth": "equity.fundamental.balance_growth",
+        "CashFlowStatementGrowth": "equity.fundamental.cash_growth",
     }[model_name]
 
 
