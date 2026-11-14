@@ -513,6 +513,9 @@ class FakeClient:
         self._Screener._outer = self
         self.filings = _Filings()
         self.equity = _Equity()
+        self.segments = _Segments()
+        self.forecast = _Forecast()
+        self.estimates = _Estimates()
 
     def call(
         self,
@@ -659,6 +662,132 @@ class _Equity:
             "position": "高级管理人员",
             "trade_way": "二级市场买卖",
         }
+
+
+class _Segments:
+    """Mirror of ``wmshare.api.SegmentsApi``."""
+
+    def periods(self, symbol: str) -> dict:
+        return {"clean_last": "2026:Q3", "clean_last_q4": "2026:Q4"}
+
+    def products(
+        self, symbol: str, source: str = "clean", limit: int = 20, _df: bool = False
+    ) -> list[dict]:
+        return [
+            {
+                "name": "茅台酒",
+                "tr": 125_000_000_000.0,
+                "tr_text": "1250.00亿",
+                "cost": 15_000_000_000.0,
+                "margin": 0.88,
+                "ratio": 0.85,
+            },
+            {
+                "name": "系列酒",
+                "tr": 18_000_000_000.0,
+                "tr_text": "180.00亿",
+                "cost": 5_000_000_000.0,
+                "margin": 0.72,
+                "ratio": 0.12,
+            },
+        ]
+
+    def business(
+        self, symbol: str, source: str = "clean", limit: int = 20, _df: bool = False
+    ) -> list[dict]:
+        return [{"name": "酒类销售", "tr": 143_000_000_000.0, "margin": 0.87}]
+
+    def region(self, symbol: str, source: str = "clean", limit: int = 20, _df: bool = False) -> Any:
+        if source == "clean":
+            return {
+                "source": "clean",
+                "report_sas": "2026:Q3",
+                "domestic": {"tr": 129_252_586_100, "pct": 0.987, "margin": 0, "yoy": 0.038},
+                "overseas": {"tr": 1_641_408_900, "pct": 0.0125, "margin": 0, "yoy": -0.578},
+            }
+        return [
+            {"name": "国内", "tr": 129_252_586_100, "tr_text": "1292.53亿"},
+            {"name": "国外", "tr": 1_641_408_900, "tr_text": "16.41亿"},
+        ]
+
+
+class _Forecast:
+    """Mirror of ``wmshare.api.ForecastApi``."""
+
+    def disclosure_history(self, symbol: str, limit: int = 8, _df: bool = False) -> list[dict]:
+        return [
+            {
+                "actual_publish_date": "2026-10-31",
+                "change_count": 0,
+                "first_appoint_date": "2026-10-31",
+                "is_publish": "1",
+                "latest_appoint_date": "2026-10-31",
+                "report_date": "2026-09-30",
+                "report_type_name": "2026年 三季报",
+            },
+            {
+                "actual_publish_date": None,
+                "change_count": 1,
+                "first_appoint_date": "2026-04-20",
+                "is_publish": "0",
+                "latest_appoint_date": "2026-04-25",
+                "report_date": "2026-12-31",
+                "report_type_name": "2026年 年报",
+            },
+        ]
+
+
+class _Estimates:
+    """Mirror of ``wmshare.api.EstimatesApi``."""
+
+    def query_forecast(self, symbol: str, limit: int = 8, _df: bool = False) -> list[dict]:
+        base = {
+            "author": None,
+            "compre_rating": "",
+            "compre_rating_num": None,
+            "date_type": "",
+            "industry": "",
+            "info_code": "",
+            "parent_netprofit1": None,
+            "parent_netprofit2": None,
+            "parent_netprofit3": None,
+            "parent_netprofit4": None,
+            "rating": "",
+            "rating_add_num": None,
+            "rating_buy_num": None,
+            "rating_neutral_num": None,
+            "publish_date": "2026-10-01",
+        }
+        return [
+            {
+                **base,
+                "org_code": "00000000",
+                "org_name": "近六月平均",
+                "eps1": 65.85,
+                "eps2": 67.25,
+                "eps3": 71.13,
+                "eps4": 75.18,
+                "pe1": 19.11,
+                "pe2": 18.71,
+                "pe3": 17.69,
+                "pe4": 16.74,
+            },
+            {
+                **base,
+                "org_code": "10002602",
+                "org_name": "某某证券",
+                "author": "研究员甲",
+                "rating": "买入",
+                "eps1": 66.5,
+                "eps2": 68.0,
+                "eps3": 72.0,
+                "eps4": None,
+                "pe1": 18.9,
+                "pe2": 18.4,
+                "pe3": 17.4,
+                "pe4": None,
+            },
+        ][: int(limit)]
 
 
 class FakeCatalog:

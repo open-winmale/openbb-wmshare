@@ -15,6 +15,7 @@ from openbb_core.provider.utils.errors import EmptyDataError, OpenBBError
 from openbb_wmshare import wmshare_provider
 from openbb_wmshare.models.available_indices import WmshareAvailableIndicesFetcher
 from openbb_wmshare.models.balance_sheet import WmshareBalanceSheetFetcher
+from openbb_wmshare.models.calendar_earnings import WmshareCalendarEarningsFetcher
 from openbb_wmshare.models.cash_flow import WmshareCashFlowStatementFetcher
 from openbb_wmshare.models.dividends import (
     WmshareCalendarDividendFetcher,
@@ -24,6 +25,10 @@ from openbb_wmshare.models.equity_historical import WmshareEquityHistoricalFetch
 from openbb_wmshare.models.equity_info import WmshareEquityInfoFetcher
 from openbb_wmshare.models.equity_quote import WmshareEquityQuoteFetcher
 from openbb_wmshare.models.equity_search import WmshareEquitySearchFetcher
+from openbb_wmshare.models.estimates import (
+    WmshareForwardEpsEstimatesFetcher,
+    WmshareForwardPeEstimatesFetcher,
+)
 from openbb_wmshare.models.filings import WmshareCompanyFilingsFetcher
 from openbb_wmshare.models.financial_ratios import WmshareFinancialRatiosFetcher
 from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
@@ -38,6 +43,10 @@ from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
 from openbb_wmshare.models.market_movers import (
     WmshareEquityGainersFetcher,
     WmshareEquityLosersFetcher,
+)
+from openbb_wmshare.models.segments_revenue import (
+    WmshareRevenueBusinessLineFetcher,
+    WmshareRevenueGeographicFetcher,
 )
 from openbb_wmshare.models.share_statistics import WmshareShareStatisticsFetcher
 from openbb_wmshare.models.trailing_dividend_yield import WmshareTrailingDivYieldFetcher
@@ -313,6 +322,11 @@ def test_provider_registers_expected_models():
         "ShareStatistics",
         "InstitutionalOwnership",
         "InsiderTrading",
+        "RevenueBusinessLine",
+        "RevenueGeographic",
+        "CalendarEarnings",
+        "ForwardEpsEstimates",
+        "ForwardPeEstimates",
     }
     assert set(wmshare_provider.fetcher_dict) == expected
 
@@ -532,3 +546,66 @@ def test_insider_trading_maps_latest_change(fake_client):
     assert row.acquisition_or_disposition == "D"
     assert row.transaction_price == 725.92
     assert row.trade_way == "二级市场买卖"
+
+
+# ---------------------------------------------------------------- batch 1b
+
+
+def test_revenue_per_segment_stamps_disclosure_period(fake_client):
+    result = run(WmshareRevenueBusinessLineFetcher, {"symbol": "600519", "dim": "product"})
+
+    assert len(result) == 2
+    top = result[0]
+    assert top.business_line == "茅台酒"
+    assert top.revenue == pytest.approx(125_000_000_000.0)
+    # period comes from segments.periods().clean_last = 2026:Q3
+    assert top.period_ending.year == 2026 and top.period_ending.month == 9
+    assert top.margin == pytest.approx(0.88)
+
+
+def test_revenue_per_geography_uses_clean_buckets(fake_client):
+    result = run(WmshareRevenueGeographicFetcher, {"symbol": "600519"})
+
+    by_region = {row.region: row for row in result}
+    assert set(by_region) == {"domestic", "overseas"}
+    assert by_region["domestic"].revenue == pytest.approx(129_252_586_100)
+    assert by_region["overseas"].yoy == pytest.approx(-0.578)
+    # period from the region payload's own report_sas (2026:Q3)
+    assert by_region["domestic"].period_ending.month == 9
+
+
+def test_calendar_earnings_maps_appointment_date(fake_client):
+    result = run(WmshareCalendarEarningsFetcher, {"symbol": "600519"})
+
+    assert len(result) == 2
+    published = result[0]
+    # calendar date is the appointment, falling back to the actual date
+    assert str(published.report_date) == "2026-10-31"
+    assert published.fiscal_period_end == "2026-09-30"
+    upcoming = result[1]
+    assert str(upcoming.report_date) == "2026-04-25"
+    assert upcoming.actual_publish_date is None
+    assert published.eps_previous is None and published.eps_consensus is None
+
+
+def test_forward_eps_keeps_institutions_and_aggregate(fake_client):
+    result = run(WmshareForwardEpsEstimatesFetcher, {"symbol": "600519"})
+
+    assert len(result) == 2
+    agg = result[0]
+    assert agg.org_name == "近六月平均"
+    assert agg.mean == pytest.approx(65.85)  # year-1 estimate
+    assert agg.eps4 == pytest.approx(75.18)
+    # no distribution upstream: low/high/median stay unset, never invented
+    assert agg.low_estimate is None and agg.high_estimate is None
+    assert result[1].rating == "买入"
+
+
+def test_forward_pe_maps_year_series(fake_client):
+    result = run(WmshareForwardPeEstimatesFetcher, {"symbol": "600519"})
+
+    assert len(result) == 2
+    agg = result[0]
+    assert agg.year1 == pytest.approx(19.11)
+    assert agg.year4 == pytest.approx(16.74)
+    assert agg.year5 is None  # upstream publishes 4 predicted years only

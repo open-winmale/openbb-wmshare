@@ -8,7 +8,7 @@
 
 ---
 
-## 一、已注册端点（24 个标准模型）
+## 一、已注册端点（29 个标准模型）
 
 | OpenBB 命令 | 标准模型 | cn | hk | us | 状态 |
 |---|---|---|---|---|---|
@@ -28,6 +28,11 @@
 | `equity.ownership.share_statistics` | ShareStatistics | ✅ | ⛔ | ⛔ | 最新股本快照；free_float=free/total |
 | `equity.ownership.institutional` | InstitutionalOwnership | ✅ | ⛔ | ⛔ | 机构持有人明细（比率已归一小数） |
 | `equity.ownership.insider_trading` | InsiderTrading | ✅ | ⛔ | ⛔ | 仅最新一条高管持股变动（上游无分页）；全字段 Optional |
+| `equity.fundamental.revenue_per_segment` | RevenueBusinessLine | ✅ | ⛔ | ⛔ | `dim=product\|business`；期间取 segments.periods().clean_last；无 tr 的行跳过 |
+| `equity.fundamental.revenue_per_geography` | RevenueGeographic | ✅ | ⛔ | ⛔ | clean domestic/overseas 两桶（tr/pct/margin/yoy） |
+| `equity.calendar.earnings` | CalendarEarnings | ✅ | ⛔ | ⛔ | **symbol 必填**（上游按标的查询）；report_date←预约日；eps_* 上游无 |
+| `equity.estimates.forward_eps` | ForwardEpsEstimates | ✅ | ⛔ | ⛔ | 按机构逐行 + 近六月平均聚合行；mean=eps1；无 low/high/median 分布 |
+| `equity.estimates.forward_pe` | ForwardPeEstimates | ✅ | ⛔ | ⛔ | year1..4←PE1..4（上游仅 4 年） |
 | `equity.calendar.dividend` | CalendarDividend | ✅ | ✅ | ✅ | ⚠️ 强制 symbol |
 | `equity.discovery.gainers` | EquityGainers | ✅ | ⛔ | ⛔ | ⚠️ 仅 symbol/name/percent（上游无 price/change） |
 | `equity.discovery.losers` | EquityLosers | ✅ | ⛔ | ⛔ | ⚠️ 同上 |

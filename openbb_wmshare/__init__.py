@@ -16,6 +16,7 @@ from openbb_core.provider.abstract.provider import Provider
 
 from openbb_wmshare.models.available_indices import WmshareAvailableIndicesFetcher
 from openbb_wmshare.models.balance_sheet import WmshareBalanceSheetFetcher
+from openbb_wmshare.models.calendar_earnings import WmshareCalendarEarningsFetcher
 from openbb_wmshare.models.cash_flow import WmshareCashFlowStatementFetcher
 from openbb_wmshare.models.dividends import (
     WmshareCalendarDividendFetcher,
@@ -25,6 +26,10 @@ from openbb_wmshare.models.equity_historical import WmshareEquityHistoricalFetch
 from openbb_wmshare.models.equity_info import WmshareEquityInfoFetcher
 from openbb_wmshare.models.equity_quote import WmshareEquityQuoteFetcher
 from openbb_wmshare.models.equity_search import WmshareEquitySearchFetcher
+from openbb_wmshare.models.estimates import (
+    WmshareForwardEpsEstimatesFetcher,
+    WmshareForwardPeEstimatesFetcher,
+)
 from openbb_wmshare.models.filings import WmshareCompanyFilingsFetcher
 from openbb_wmshare.models.financial_ratios import WmshareFinancialRatiosFetcher
 from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
@@ -41,6 +46,10 @@ from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
 from openbb_wmshare.models.market_movers import (
     WmshareEquityGainersFetcher,
     WmshareEquityLosersFetcher,
+)
+from openbb_wmshare.models.segments_revenue import (
+    WmshareRevenueBusinessLineFetcher,
+    WmshareRevenueGeographicFetcher,
 )
 from openbb_wmshare.models.share_statistics import WmshareShareStatisticsFetcher
 from openbb_wmshare.models.trailing_dividend_yield import WmshareTrailingDivYieldFetcher
@@ -79,6 +88,11 @@ wmshare_provider = Provider(
         "ShareStatistics": WmshareShareStatisticsFetcher,
         "InstitutionalOwnership": WmshareInstitutionalOwnershipFetcher,
         "InsiderTrading": WmshareInsiderTradingFetcher,
+        "RevenueBusinessLine": WmshareRevenueBusinessLineFetcher,
+        "RevenueGeographic": WmshareRevenueGeographicFetcher,
+        "CalendarEarnings": WmshareCalendarEarningsFetcher,
+        "ForwardEpsEstimates": WmshareForwardEpsEstimatesFetcher,
+        "ForwardPeEstimates": WmshareForwardPeEstimatesFetcher,
     },
     repr_name="wmshare (A-share / Hong Kong / US)",
     instructions=(

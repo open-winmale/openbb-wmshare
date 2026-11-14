@@ -57,6 +57,11 @@ def call(model: str, **params):
         "ShareStatistics": obb.equity.ownership.share_statistics,
         "InstitutionalOwnership": obb.equity.ownership.institutional,
         "InsiderTrading": obb.equity.ownership.insider_trading,
+        "RevenueBusinessLine": obb.equity.fundamental.revenue_per_segment,
+        "RevenueGeographic": obb.equity.fundamental.revenue_per_geography,
+        "CalendarEarnings": obb.equity.calendar.earnings,
+        "ForwardEpsEstimates": obb.equity.estimates.forward_eps,
+        "ForwardPeEstimates": obb.equity.estimates.forward_pe,
     }[model]
     return command(**params, provider="wmshare")
 
@@ -341,3 +346,53 @@ def test_insider_trading_latest_row_only():
     result = call("InsiderTrading", symbol="600519.SH").results
 
     assert len(result) <= 1
+
+
+# ---------------------------------------------------------------- batch 1b
+
+
+@requires_credentials
+def test_revenue_per_segment_business_dim():
+    result = call("RevenueBusinessLine", symbol="600519.SH", dim="business").results
+
+    assert result
+    assert all(row.revenue > 0 for row in result)
+    assert all(row.period_ending is not None for row in result)
+
+
+@requires_credentials
+def test_revenue_per_geography_two_buckets():
+    result = call("RevenueGeographic", symbol="600519.SH").results
+
+    regions = {row.region for row in result}
+    assert regions == {"domestic", "overseas"}
+    assert all(row.revenue > 0 for row in result)
+
+
+@requires_credentials
+def test_calendar_earnings_maps_appointments():
+    result = call("CalendarEarnings", symbol="600519.SH").results
+
+    assert result
+    assert all(row.report_date is not None for row in result)
+    assert all(row.fiscal_period_end for row in result)
+
+
+@requires_credentials
+def test_forward_eps_rows_carry_year_series():
+    result = call("ForwardEpsEstimates", symbol="600519.SH", limit=3).results
+
+    assert result
+    first = result[0]
+    assert first.date is not None
+    assert first.mean is not None  # year-1 estimate
+    assert first.low_estimate is None  # no distribution upstream
+
+
+@requires_credentials
+def test_forward_pe_year_series():
+    result = call("ForwardPeEstimates", symbol="600519.SH", limit=3).results
+
+    assert result
+    assert all(row.year1 is not None for row in result)
+    assert all(row.year5 is None for row in result)

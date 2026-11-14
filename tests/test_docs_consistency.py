@@ -131,6 +131,11 @@ def _command_for(model_name: str) -> str:
         "ShareStatistics": "equity.ownership.share_statistics",
         "InstitutionalOwnership": "equity.ownership.institutional",
         "InsiderTrading": "equity.ownership.insider_trading",
+        "RevenueBusinessLine": "equity.fundamental.revenue_per_segment",
+        "RevenueGeographic": "equity.fundamental.revenue_per_geography",
+        "CalendarEarnings": "equity.calendar.earnings",
+        "ForwardEpsEstimates": "equity.estimates.forward_eps",
+        "ForwardPeEstimates": "equity.estimates.forward_pe",
     }[model_name]
 
 
