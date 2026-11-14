@@ -42,11 +42,16 @@
 - **影响**：demo 作为「离线试跑」入口的契约保证失效。
 - **修复建议**：demo 签名与 `Client` 对齐（接受并显式拒绝不支持参数，返回 `demo_unsupported`）。
 
-### SDK-5 `kline.snapshot` `returns_shape` 少声明 — `open`
+### SDK-5 `returns_shape` 少声明（多发） — `open`
 
-- **症状**：目录声明返回 `symbol/close/percent/chg_20d` 4 字段，实际返回 22 字段
-  （`mv/mv_free/ma20/60/120/chg_5d/10d/90d/roi_1y/vol_ratio_5/is_st/is_suspend/...`）。
-- **证据**：2026-11-13 实测字段清单（`docs/COVERAGE.md` §2.3）。
+- **症状**：多处目录声明远小于实际返回：
+  - `kline.snapshot`：声明 4 字段，实返 22（`mv/mv_free/ma20/60/120/chg_5d/10d/90d/roi_1y/...`）。
+  - `filings.query`：文档列 `title/type/notice_date/report_date/url`，实列
+    `notice_type/pdf_url`（字段名都对不上，2026-11-14 实测）。
+  - `equity.query_executives`：文档列 4 字段，实返 10 字段
+    （`age/birth_year/high_degree/sex/nationality/incumbent_time/...`）。
+- **影响**：按目录写代码的调用方错过可用字段；目录「防编造」承诺失真。
+- **修复建议**：补齐 shape 声明（SDK 侧已有 `shape_notes` 测试机制）。
 - **影响**：按目录写代码的调用方错过可用字段；目录的「防编造」承诺失真。
 - **修复建议**：目录补齐 shape 声明。
 
@@ -87,6 +92,17 @@
 - **症状**：窗口分红计数聚合缺陷，恒返回 0（`disc.bonus` 目录 notes 自认）。
 - **规避（SDK 内部实现）**：SDK 的 `dividend.window_stats` 已自行计数，不经该缺陷函数。
 - **修复建议**：修上游 count 聚合。
+
+---
+
+### S-4 `cursor.listbs` 不支持 v2 宽表（fin.income 等）期间列举 — `open`
+
+- **症状**：`us.fin.income.AAPL` / `fin.income.us.AAPL` / `...LIST...` 等键形均返回空
+  （store.get 直读有数据，n=54）。跨市场三大表因此无法做「期间自动列举」，
+  只能 latest 锚定 + 显式 (annual, sampling) 逐期取数。
+- **证据**：2026-11-14 键形矩阵探针（script 仓 tmp 探针，全部 0 期）。
+- **规避**：`rptdom.mkt_latest` doc 自带 `annual` 作回溯锚（provider `_fetch_mkt`）。
+- **修复建议**：v2 store 提供期间列举接口（listbs 兼容或 store.periods）。
 
 ---
 

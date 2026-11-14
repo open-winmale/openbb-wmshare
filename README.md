@@ -92,7 +92,7 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 
 ## 支持的端点
 
-19 个 OpenBB 标准模型，`provider="wmshare"`：
+32 个 OpenBB 标准模型 + 5 个自建命令 `obb.wmshare.*`，`provider="wmshare"`：
 
 | 命令 | 市场 | 说明 |
 |---|---|---|
@@ -100,9 +100,19 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 | `equity.price.quote` | cn / hk / us | 最新快照 + 均线 + 多窗口涨跌 |
 | `equity.search` | cn / hk / us | 离线代码表检索，无需凭证 |
 | `equity.profile` | cn / hk / us | 名称/行业（含行业名）/组织类型/上市日 |
-| `equity.fundamental.income` | cn | 利润表，一年一行 |
-| `equity.fundamental.balance` | cn | 资产负债表 |
-| `equity.fundamental.cash` | cn | 现金流量表 |
+| `equity.fundamental.filings` | cn | 定期报告清单（kind 过滤，含 PDF 链接） |
+| `equity.fundamental.management` | cn | 高管名册（薪酬/持股/学历/任期） |
+| `equity.ownership.share_statistics` | cn | 股本快照（总股本/自由流通股/占比） |
+| `equity.ownership.institutional` | cn | 机构持有人明细 |
+| `equity.ownership.insider_trading` | cn | 最新一条高管持股变动 |
+| `equity.fundamental.revenue_per_segment` | cn | 分产品/业务收入（dim 参数） |
+| `equity.fundamental.revenue_per_geography` | cn | 境内外收入拆分 |
+| `equity.calendar.earnings` | cn | 预约披露日历（**symbol 必填**） |
+| `equity.estimates.forward_eps` / `.forward_pe` | cn | 机构逐行预测 + 近六月平均聚合行 |
+| `equity.fundamental.income_growth` / `.balance_growth` / `.cash_growth` | cn | 行项 YoY（本地派生，零基为 None） |
+| `equity.fundamental.income` | cn / hk* / us* | 利润表（hk/us 走跨市场宽表，季度原币——**待 script 仓部署后 live**） |
+| `equity.fundamental.balance` | cn / hk* / us* | 资产负债表（同上） |
+| `equity.fundamental.cash` | cn / hk* / us* | 现金流量表（同上） |
 | `equity.fundamental.metrics` | cn / hk / us | PE/PB/PS/ROE/股息率/PE 十年分位 |
 | `equity.fundamental.ratios` | cn | 毛利率/净利率/ROE/ROA/流动比率等；最新期取平台指标，历史期本地派生 |
 | `equity.fundamental.dividends` | cn / hk / us | 分红历史明细 |
@@ -114,6 +124,9 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 | `index.constituents` | cn | 成分股 + 披露权重 + 市值/估值 |
 | `index.search` | cn | 指数键检索（中英文名），无需凭证 |
 | `index.available` | cn | 全部可用指数键，无需凭证 |
+| `obb.wmshare.screener` | cn | XS 表达式全市场扫描（`$码` 透传为列，count=真实命中数） |
+| `obb.wmshare.index_valuation_trend` | cn | 周频整体法 PE/PB + 窗口分位 |
+| `obb.wmshare.moneyflow` / `.margin` / `.cbond_board` | cn | 资金流 / 两融 / 转债面板 |
 
 **完整覆盖矩阵**（含每个端点逐市场的能力与限制）见 [docs/COVERAGE.md](docs/COVERAGE.md)；
 **已知数据缺口与后续补充方案**见 [docs/GAPS.md](docs/GAPS.md)；

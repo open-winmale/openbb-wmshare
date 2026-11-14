@@ -150,7 +150,7 @@ opts={"n": 4, "sampling": "Q3"})` 返回季报行。
 - 港美三表数据在库性已复测确认（us 56 / hk 60 字段），但**只作诊断结论**：服务路径必须走
   script 层标准函数，见 A1 的标准流程约束。
 
-### 2.1 P0：✅ 已完成（阶段 0，2026-11-13）
+### 2.1 P0：✅ 已完成（阶段 0，2026-11-13；阶段 1 补充见 §2.2 标注）
 
 | 项 | 原问题 | 落地 |
 |---|---|---|
@@ -253,17 +253,24 @@ obb.wmshare.cbond_board()  # cbond.board
 **验收结果**：`make check` 全绿；`index.hs300` 实测返回 692 根（2024-01-02 → 2026-11-12）；
 `equity.profile(symbol="AAPL")` 不再 400。
 
-### 阶段 1：B 类 P0（本仓 + 目录刷新）
+### 阶段 1：B 类 P0 —— ✅ 已完成（2026-11-14，提交 22483ed/608196b/0187ee9 等）
 
-1. 按 §2.2 表逐个实现 fetcher，每加一个同步 `fetcher_dict` + 离线测试 + live 用例。
-2. `equity.screener` 走自有命名空间，不扭曲标准模型。
-3. 需要新指标码时，先 `cat.search` 确认真码（wmshare AGENTS.md 硬规则：防编造）。
+1. ✅ §2.2 #3/#4/#5/#6/#9(缓行)/#10/#11/#12/#13 + #1/#2（segments 双端点）+ growth×3 + short_interest（探测门禁缓行）。
+2. ✅ 自建命名空间 `obb.wmshare.*` 5 命令（screener/index_valuation_trend/moneyflow/margin/cbond_board）。
+3. ✅ `equity.profile` 港美 industry_name（`indicator.metrics` + `stocks.industry_members`，全目录函数）。
+4. ✅ 探测门禁拦下 3 项并记 GAPS：PriceTarget（无目标价字段）、ShortInterest（行全空）、market_snapshots（无全市场接口）。
+5. 探测修正：query_executives 实为 10 字段（目录少声明，BUGS SDK-5）；filings 列为 notice_type/pdf_url。
+
+**待办（下轮）**：index.sectors / peers / management_discussion / market_snapshots（均已有缓行理由）。
 
 **验收**：`openbb-build` 后 `obb.reference` 出现新命令；`pytest -m integration` 全绿。
 
-### 阶段 2：A 类（跨仓，需协同）
+### 阶段 2：A 类 —— 🔄 代码就绪、待部署（2026-11-14）
 
-按 A1 > A2 > A3 顺序。A1（港美三表）价值最高且数据已在库。
+- **A1 港美三表**：script 仓 `b79c0681`（rptdom.mkt_latest/mkt_get，跨市场宽表 Route B，无需动 airflow）+ SDK `6c319b6`（v1.4.0 收录）+ provider `120c50d`（hk/us 三表走 mkt 通路，列映射机械转换+语义 override）。
+- **A2 季报**：script 仓 `a778aae7`（sampling 贯穿 + statement_periods）+ SDK `f931285`（v1.5.0）+ provider `0187ee9`（cn sampling 参数）。
+- **部署门禁**：script 仓 push main = 生产部署（原子 symlink + Redis 失效），**待用户明示确认后执行**；部署后跑 live 链路（hk.00700 / us.AAPL 三表 + cn 季报）并解锁 COVERAGE 的 🔒 行。
+- 按 A1 > A2 > A3 顺序。A1（港美三表）价值最高且数据已在库。
 
 **script 仓工作流（强制）**：
 ```
