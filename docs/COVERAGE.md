@@ -8,7 +8,7 @@
 
 ---
 
-## 一、已注册端点（19 个标准模型）
+## 一、已注册端点（24 个标准模型）
 
 | OpenBB 命令 | 标准模型 | cn | hk | us | 状态 |
 |---|---|---|---|---|---|
@@ -23,6 +23,11 @@
 | `equity.fundamental.ratios` | FinancialRatios | ✅ | ⛔ | ⛔ | ⚠️ 本地重算 |
 | `equity.fundamental.dividends` | HistoricalDividends | ✅ | ✅ | ✅ | ✅ |
 | `equity.fundamental.trailing_dividend_yield` | TrailingDividendYield | ✅ | ✅ | ✅ | 时点值（TTM），无历史序列；`limit` 无效 |
+| `equity.fundamental.filings` | CompanyFilings | ✅ | ⛔ | ⛔ | `kind=all\|annual\|semi\|quarter`；无 pdf_url 的行跳过 |
+| `equity.fundamental.management` | KeyExecutives | ✅ | ⛔ | ⛔ | 高管名册（学历/年龄/任职等透传） |
+| `equity.ownership.share_statistics` | ShareStatistics | ✅ | ⛔ | ⛔ | 最新股本快照；free_float=free/total |
+| `equity.ownership.institutional` | InstitutionalOwnership | ✅ | ⛔ | ⛔ | 机构持有人明细（比率已归一小数） |
+| `equity.ownership.insider_trading` | InsiderTrading | ✅ | ⛔ | ⛔ | 仅最新一条高管持股变动（上游无分页）；全字段 Optional |
 | `equity.calendar.dividend` | CalendarDividend | ✅ | ✅ | ✅ | ⚠️ 强制 symbol |
 | `equity.discovery.gainers` | EquityGainers | ✅ | ⛔ | ⛔ | ⚠️ 仅 symbol/name/percent（上游无 price/change） |
 | `equity.discovery.losers` | EquityLosers | ✅ | ⛔ | ⛔ | ⚠️ 同上 |

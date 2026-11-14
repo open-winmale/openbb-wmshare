@@ -24,17 +24,22 @@ from openbb_wmshare.models.equity_historical import WmshareEquityHistoricalFetch
 from openbb_wmshare.models.equity_info import WmshareEquityInfoFetcher
 from openbb_wmshare.models.equity_quote import WmshareEquityQuoteFetcher
 from openbb_wmshare.models.equity_search import WmshareEquitySearchFetcher
+from openbb_wmshare.models.filings import WmshareCompanyFilingsFetcher
 from openbb_wmshare.models.financial_ratios import WmshareFinancialRatiosFetcher
 from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
 from openbb_wmshare.models.index_constituents import WmshareIndexConstituentsFetcher
 from openbb_wmshare.models.index_historical import WmshareIndexHistoricalFetcher
 from openbb_wmshare.models.index_search import WmshareIndexSearchFetcher
 from openbb_wmshare.models.index_snapshots import WmshareIndexSnapshotsFetcher
+from openbb_wmshare.models.insider_trading import WmshareInsiderTradingFetcher
+from openbb_wmshare.models.institutional_ownership import WmshareInstitutionalOwnershipFetcher
+from openbb_wmshare.models.key_executives import WmshareKeyExecutivesFetcher
 from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
 from openbb_wmshare.models.market_movers import (
     WmshareEquityGainersFetcher,
     WmshareEquityLosersFetcher,
 )
+from openbb_wmshare.models.share_statistics import WmshareShareStatisticsFetcher
 from openbb_wmshare.models.trailing_dividend_yield import WmshareTrailingDivYieldFetcher
 
 
@@ -303,6 +308,11 @@ def test_provider_registers_expected_models():
         "EquityGainers",
         "EquityLosers",
         "TrailingDividendYield",
+        "CompanyFilings",
+        "KeyExecutives",
+        "ShareStatistics",
+        "InstitutionalOwnership",
+        "InsiderTrading",
     }
     assert set(wmshare_provider.fetcher_dict) == expected
 
@@ -457,3 +467,68 @@ def test_equity_info_industry_name_missing_key_is_none(fake_client, monkeypatch)
     assert info.industry_category is None
     assert info.industry_name is None
     assert info.name == "无名氏"
+
+
+# ---------------------------------------------------------------- batch 1a
+
+
+def test_company_filings_maps_notice_and_url(fake_client):
+    result = run(WmshareCompanyFilingsFetcher, {"symbol": "600519", "limit": 10})
+
+    # The link-less row must be skipped: report_url is required upstream.
+    assert len(result) == 1
+    row = result[0]
+    assert row.symbol == "600519.SH"
+    assert row.report_type == "年报"
+    assert row.report_url.startswith("https://")
+
+
+def test_company_filings_kind_filter(fake_client):
+    result = run(WmshareCompanyFilingsFetcher, {"symbol": "600519", "kind": "annual"})
+    assert all(row.report_type == "年报" for row in result)
+
+
+def test_key_executives_maps_roster(fake_client):
+    result = run(WmshareKeyExecutivesFetcher, {"symbol": "600519"})
+
+    assert len(result) == 2
+    chair = result[0]
+    assert chair.name == "陈华"
+    assert "董事长" in chair.title
+    assert chair.pay is None  # salary missing upstream, never invented
+    assert chair.high_degree == "硕士"
+    paid = result[1]
+    assert paid.pay == 1200000.0
+    assert paid.currency_pay == "CNY"
+
+
+def test_share_statistics_derives_free_float(fake_client):
+    row = run(WmshareShareStatisticsFetcher, {"symbol": "600519"})[0]
+
+    assert row.symbol == "600519.SH"
+    assert row.outstanding_shares == 1250081601
+    assert row.float_shares == 1250081601
+    assert row.free_float == pytest.approx(1.0)
+
+
+def test_institutional_ownership_skips_rows_without_date(fake_client):
+    result = run(WmshareInstitutionalOwnershipFetcher, {"symbol": "600519", "limit": 2})
+
+    assert len(result) == 1  # the date-less fund row is skipped
+    row = result[0]
+    assert row.date is not None
+    assert row.holder_name == "中国贵州茅台酒厂(集团)有限责任公司"
+    assert row.shares == 681282935
+    assert row.total_shares_ratio == pytest.approx(0.5449907706)
+
+
+def test_insider_trading_maps_latest_change(fake_client):
+    row = run(WmshareInsiderTradingFetcher, {"symbol": "600519"})[0]
+
+    assert row.symbol == "600519.SH"
+    assert row.owner_name == "万波"
+    assert row.securities_transacted == -700
+    # sign of change_num drives A/D, nothing else is inferred
+    assert row.acquisition_or_disposition == "D"
+    assert row.transaction_price == 725.92
+    assert row.trade_way == "二级市场买卖"

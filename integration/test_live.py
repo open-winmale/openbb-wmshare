@@ -52,6 +52,11 @@ def call(model: str, **params):
         "EquityGainers": obb.equity.discovery.gainers,
         "EquityLosers": obb.equity.discovery.losers,
         "TrailingDividendYield": obb.equity.fundamental.trailing_dividend_yield,
+        "CompanyFilings": obb.equity.fundamental.filings,
+        "KeyExecutives": obb.equity.fundamental.management,
+        "ShareStatistics": obb.equity.ownership.share_statistics,
+        "InstitutionalOwnership": obb.equity.ownership.institutional,
+        "InsiderTrading": obb.equity.ownership.insider_trading,
     }[model]
     return command(**params, provider="wmshare")
 
@@ -293,3 +298,46 @@ def test_profile_resolves_industry_name_for_us_and_cn():
     us = call("EquityInfo", symbol="AAPL").results[0]
     assert us.industry_category == "industry.Y100103"
     assert us.industry_name == "Consumer Electronics"
+
+
+# ---------------------------------------------------------------- batch 1a
+
+
+@requires_credentials
+def test_filings_carry_report_urls():
+    result = call("CompanyFilings", symbol="600519.SH", limit=10).results
+
+    assert result
+    assert all(row.report_url for row in result), "url-less rows must be skipped"
+    assert any(row.report_type == "年报" for row in result)
+
+
+@requires_credentials
+def test_key_executives_roster():
+    result = call("KeyExecutives", symbol="600519.SH").results
+
+    assert len(result) >= 5
+    assert all(row.name and row.title for row in result)
+
+
+@requires_credentials
+def test_share_statistics_free_float_is_fraction():
+    row = call("ShareStatistics", symbol="600519.SH").results[0]
+
+    assert row.outstanding_shares and row.outstanding_shares > 0
+    assert row.free_float is None or 0 < row.free_float <= 1
+
+
+@requires_credentials
+def test_institutional_ownership_rows_dated():
+    result = call("InstitutionalOwnership", symbol="600519.SH", limit=10).results
+
+    assert result
+    assert all(row.date is not None for row in result)
+
+
+@requires_credentials
+def test_insider_trading_latest_row_only():
+    result = call("InsiderTrading", symbol="600519.SH").results
+
+    assert len(result) <= 1

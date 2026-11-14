@@ -126,6 +126,11 @@ def _command_for(model_name: str) -> str:
         "EquityGainers": "equity.discovery.gainers",
         "EquityLosers": "equity.discovery.losers",
         "TrailingDividendYield": "equity.fundamental.trailing_dividend_yield",
+        "CompanyFilings": "equity.fundamental.filings",
+        "KeyExecutives": "equity.fundamental.management",
+        "ShareStatistics": "equity.ownership.share_statistics",
+        "InstitutionalOwnership": "equity.ownership.institutional",
+        "InsiderTrading": "equity.ownership.insider_trading",
     }[model_name]
 
 

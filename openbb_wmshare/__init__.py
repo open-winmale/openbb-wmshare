@@ -25,6 +25,7 @@ from openbb_wmshare.models.equity_historical import WmshareEquityHistoricalFetch
 from openbb_wmshare.models.equity_info import WmshareEquityInfoFetcher
 from openbb_wmshare.models.equity_quote import WmshareEquityQuoteFetcher
 from openbb_wmshare.models.equity_search import WmshareEquitySearchFetcher
+from openbb_wmshare.models.filings import WmshareCompanyFilingsFetcher
 from openbb_wmshare.models.financial_ratios import WmshareFinancialRatiosFetcher
 from openbb_wmshare.models.income_statement import WmshareIncomeStatementFetcher
 from openbb_wmshare.models.index_constituents import WmshareIndexConstituentsFetcher
@@ -33,11 +34,15 @@ from openbb_wmshare.models.index_historical import (
 )
 from openbb_wmshare.models.index_search import WmshareIndexSearchFetcher
 from openbb_wmshare.models.index_snapshots import WmshareIndexSnapshotsFetcher
+from openbb_wmshare.models.insider_trading import WmshareInsiderTradingFetcher
+from openbb_wmshare.models.institutional_ownership import WmshareInstitutionalOwnershipFetcher
+from openbb_wmshare.models.key_executives import WmshareKeyExecutivesFetcher
 from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
 from openbb_wmshare.models.market_movers import (
     WmshareEquityGainersFetcher,
     WmshareEquityLosersFetcher,
 )
+from openbb_wmshare.models.share_statistics import WmshareShareStatisticsFetcher
 from openbb_wmshare.models.trailing_dividend_yield import WmshareTrailingDivYieldFetcher
 
 wmshare_provider = Provider(
@@ -69,6 +74,11 @@ wmshare_provider = Provider(
         "EquityGainers": WmshareEquityGainersFetcher,
         "EquityLosers": WmshareEquityLosersFetcher,
         "TrailingDividendYield": WmshareTrailingDivYieldFetcher,
+        "CompanyFilings": WmshareCompanyFilingsFetcher,
+        "KeyExecutives": WmshareKeyExecutivesFetcher,
+        "ShareStatistics": WmshareShareStatisticsFetcher,
+        "InstitutionalOwnership": WmshareInstitutionalOwnershipFetcher,
+        "InsiderTrading": WmshareInsiderTradingFetcher,
     },
     repr_name="wmshare (A-share / Hong Kong / US)",
     instructions=(

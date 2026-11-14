@@ -511,6 +511,8 @@ class FakeClient:
         self.index = _Index()
         self.screener = self._Screener()
         self._Screener._outer = self
+        self.filings = _Filings()
+        self.equity = _Equity()
 
     def call(
         self,
@@ -560,6 +562,103 @@ class FakeClient:
         ]
         rows = sorted(movers, key=lambda r: r["percent"], reverse=desc)
         return rows[: int(limit)]
+
+
+class _Filings:
+    """Mirror of ``wmshare.api.FilingsApi``."""
+
+    def list(
+        self, symbol: str, kind: str = "all", limit: int = 10, _df: bool = False
+    ) -> list[dict]:
+        rows = [
+            {
+                "notice_date": "2026-04-17",
+                "notice_type": "年报",
+                "pdf_url": "https://res.example/fr/600519_2025Y_a.pdf",
+                "report_date": "2025-12-31",
+                "title": "贵州茅台:2025年年度报告",
+            },
+            {
+                "notice_date": "2025-08-15",
+                "notice_type": "半年报",
+                # one link-less row: the fetcher must skip it (report_url required)
+                "pdf_url": "",
+                "report_date": "2025-06-30",
+                "title": "贵州茅台:2025年半年度报告",
+            },
+        ]
+        if kind != "all":
+            rows = [r for r in rows if kind == "annual" and r["notice_type"] == "年报"]
+        return rows[: int(limit)]
+
+
+class _Equity:
+    """Mirror of ``wmshare.api.EquityApi``'s used surface."""
+
+    def query_executives(self, symbol: str, _df: bool = False) -> list[dict]:
+        return [
+            {
+                "person_name": "陈华",
+                "position": "董事长,法定代表人,董事",
+                "salary": None,
+                "hold_num": None,
+                "sex": "男",
+                "birth_year": "1972",
+                "age": "54",
+                "high_degree": "硕士",
+                "nationality": "",
+                "incumbent_time": "2025-11-28至今",
+            },
+            {
+                "person_name": "王莉",
+                "position": "代理总经理,董事",
+                "salary": 1200000.0,
+                "hold_num": 55000.0,
+                "sex": "女",
+                "birth_year": "1973",
+                "age": "53",
+                "high_degree": "硕士",
+                "nationality": "中国",
+                "incumbent_time": "2023-08-19至今",
+            },
+        ]
+
+    def query_capital_change(self, symbol: str) -> dict:
+        return {"free_shares": 1250081601, "total_shares": 1250081601}
+
+    def query_institution_detail(
+        self, symbol: str, limit: int = 20, _df: bool = False
+    ) -> list[dict]:
+        return [
+            {
+                "holder_name": "中国贵州茅台酒厂(集团)有限责任公司",
+                "org_type": "07",
+                "report_date": "2026-06-30",
+                "total_shares": 681282935,
+                "hold_value": 807654106613.15,
+                "total_shares_ratio": 0.5449907706,
+                "free_shares_ratio": 0.5449907706,
+            },
+            {
+                # no report_date: the fetcher must skip this row
+                "holder_name": "睿远稳益增强30天持有债券A",
+                "org_type": "01",
+                "total_shares": 67000,
+            },
+        ][: int(limit)]
+
+    def query_exec_change(self, symbol: str) -> dict:
+        return {
+            "average_price": 725.92,
+            "change_after_holdnum": 0,
+            "change_num": -700,
+            "end_date": "2018-09-26",
+            "executive_name": "万波",
+            "executive_relation": "本人",
+            "holder_name": "万波",
+            "position": "高级管理人员",
+            "trade_way": "二级市场买卖",
+        }
 
 
 class FakeCatalog:
