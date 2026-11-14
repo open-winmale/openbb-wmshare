@@ -270,7 +270,28 @@ obb.wmshare.cbond_board()  # cbond.board
 - **A1 港美三表**：script 仓 `b79c0681`（rptdom.mkt_latest/mkt_get，跨市场宽表 Route B，无需动 airflow）+ SDK `6c319b6`（v1.4.0 收录）+ provider `120c50d`（hk/us 三表走 mkt 通路，列映射机械转换+语义 override）。
 - **A2 季报**：script 仓 `a778aae7`（sampling 贯穿 + statement_periods）+ SDK `f931285`（v1.5.0）+ provider `0187ee9`（cn sampling 参数）。
 - **部署门禁**：script 仓 push main = 生产部署（原子 symlink + Redis 失效），**待用户明示确认后执行**；部署后跑 live 链路（hk.00700 / us.AAPL 三表 + cn 季报）并解锁 COVERAGE 的 🔒 行。
-- 按 A1 > A2 > A3 顺序。A1（港美三表）价值最高且数据已在库。
+
+**部署后验证清单**（push main 并等 CI `deploy` stage 完成后依次执行）：
+
+```bash
+# 1. 远端复验 mkt_* 函数（us.AAPL basicEps≈7.49 / 归母净利≈1120 亿）
+python3 - <<'PY'
+import wmshare
+us = wmshare.Client.from_env(market="us")
+d = us.call("rptdom.mkt_latest", sym="AAPL", domain="fin.income_statement")
+print("annual =", d.get("annual"), "| basicEps =", d.get("basicEps"))
+g = us.call("rptdom.mkt_get", sym="AAPL", domain="fin.income_statement", annual=2025, sampling="Q4")
+print("2025Q4 continuedNetProfit =", g.get("continuedNetProfit"))
+PY
+
+# 2. provider 港美三表 + cn 季报 live（自动启用被 skip 的用例）
+pytest -m integration -q          # hk/us 三表 + cn sampling=Q1 用例不再 skip
+
+# 3. 解锁文档：COVERAGE.md 三大表行 🔒 → ✅；GAPS 阶段 2 → ✅；BUGS S-2 → fixed
+# 4. provider 提交 docs 变更
+```
+
+按 A1 > A2 > A3 顺序。A1（港美三表）价值最高且数据已在库。
 
 **script 仓工作流（强制）**：
 ```
