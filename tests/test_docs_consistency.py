@@ -139,6 +139,11 @@ def _command_for(model_name: str) -> str:
         "IncomeStatementGrowth": "equity.fundamental.income_growth",
         "BalanceSheetGrowth": "equity.fundamental.balance_growth",
         "CashFlowStatementGrowth": "equity.fundamental.cash_growth",
+        "WmshareScreener": "wmshare.screener",
+        "WmshareIndexValuationTrend": "wmshare.index_valuation_trend",
+        "WmshareMoneyflow": "wmshare.moneyflow",
+        "WmshareMargin": "wmshare.margin",
+        "WmshareCbondBoard": "wmshare.cbond_board",
     }[model_name]
 
 

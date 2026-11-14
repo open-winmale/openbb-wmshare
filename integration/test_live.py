@@ -436,3 +436,46 @@ def test_income_growth_matches_statement_levels():
             current = by_year.get(year)
             if current:
                 assert row.total_revenue_growth == pytest.approx(current / prior - 1, rel=1e-6)
+
+
+# ---------------------------------------------------------------- batch 1d
+
+
+@requires_credentials
+def test_screener_expression_scan():
+    df = obb_helper().wmshare.screener(
+        where="$ROE_TTM_LAST > 0.15", provider="wmshare"
+    ).to_df()
+
+    assert len(df) > 0
+    assert "$ROE_TTM_LAST" in df.columns
+    assert (df["$ROE_TTM_LAST"] > 0.15).all()
+
+
+@requires_credentials
+def test_index_valuation_trend_points():
+    df = obb_helper().wmshare.index_valuation_trend(
+        key="index.hs300", window="5y", provider="wmshare"
+    ).to_df()
+
+    assert len(df) >= 100
+    assert df["pe_pct_window"].iloc[0] is not None
+    assert 0 <= df["pe_pct_window"].iloc[0] <= 1
+
+
+@requires_credentials
+def test_moneyflow_margin_cbond_live():
+    mf = obb_helper().wmshare.moneyflow(symbol="600519.SH", provider="wmshare").to_df()
+    assert len(mf) > 0 and "net_mf" in mf.columns
+
+    mg = obb_helper().wmshare.margin(symbol="600519.SH", provider="wmshare").to_df()
+    assert len(mg) > 0 and "fin_balance" in mg.columns
+
+    cb = obb_helper().wmshare.cbond_board(provider="wmshare").to_df()
+    assert len(cb) > 100 and "bond_code" in cb.columns
+
+
+def obb_helper():
+    from openbb import obb
+
+    return obb

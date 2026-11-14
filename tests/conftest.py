@@ -513,6 +513,9 @@ class FakeClient:
         self._Screener._outer = self
         self.filings = _Filings()
         self.equity = _Equity()
+        self.moneyflow = _Moneyflow()
+        self.margin = _Margin()
+        self.cbond = _Cbond()
         self.segments = _Segments()
         self.forecast = _Forecast()
         self.estimates = _Estimates()
@@ -544,6 +547,24 @@ class FakeClient:
             return self.kline.index_live_many(kwargs.get("keys") or [])
         if name == "stocks.industry_members":
             return self.industry_members(kwargs.get("ind"))
+        if name == "screener.query":
+            return {
+                "count": 108,
+                "rows": [
+                    {
+                        "symbol": "900948",
+                        "name": "伊泰B股",
+                        "$BONUS_RATE_3Y_AVG_LAST": 0.2104,
+                        "$ROE_TTM_LAST": 0.1631,
+                    },
+                    {
+                        "symbol": "600519",
+                        "name": "贵州茅台",
+                        "$BONUS_RATE_3Y_AVG_LAST": 0.0373,
+                        "$ROE_TTM_LAST": 0.31,
+                    },
+                ],
+            }
         raise AssertionError(f"FakeClient.call received an unexpected function: {name}")
 
     def industry_members(self, ind: str | None) -> list[dict]:
@@ -556,6 +577,35 @@ class FakeClient:
         def index_top_movers(self, limit: int = 20, desc: bool = True) -> list[dict]:
             return self._outer.screener_top_movers(limit, desc)
 
+        def query(
+            self,
+            where: str,
+            order: str | None = None,
+            desc: bool = True,
+            limit: int = 50,
+            offset: int = 0,
+            fields: list[str] | None = None,
+            idx: str | None = None,
+            _df: bool = False,
+        ) -> dict:
+            return {
+                "count": 108,
+                "rows": [
+                    {
+                        "symbol": "900948",
+                        "name": "伊泰B股",
+                        "$BONUS_RATE_3Y_AVG_LAST": 0.2104,
+                        "$ROE_TTM_LAST": 0.1631,
+                    },
+                    {
+                        "symbol": "600519",
+                        "name": "贵州茅台",
+                        "$BONUS_RATE_3Y_AVG_LAST": 0.0373,
+                        "$ROE_TTM_LAST": 0.31,
+                    },
+                ],
+            }
+
     def screener_top_movers(self, limit: int, desc: bool) -> list[dict]:
         """Emulate ``screener.index_top_movers``: symbol/name/percent rows only."""
         movers = [
@@ -565,6 +615,77 @@ class FakeClient:
         ]
         rows = sorted(movers, key=lambda r: r["percent"], reverse=desc)
         return rows[: int(limit)]
+
+
+class _Moneyflow:
+    """Mirror of ``wmshare.api.MoneyflowApi``."""
+
+    def bars(
+        self,
+        symbol: str,
+        n: int | None = None,
+        begin: str | None = None,
+        end: str | None = None,
+        _raw: bool = False,
+        _df: bool = False,
+    ) -> list[dict]:
+        return [
+            {
+                "date": "2026-10-30",
+                "net_mf": 328_649_400,
+                "elg_net": -7_507_400,
+                "lg_net": -125_033_400,
+                "md_net": 41_427_500,
+                "sm_net": 91_113_200,
+            },
+            {
+                "date": "2026-10-29",
+                "net_mf": 366_153_399,
+                "elg_net": -120_158_100,
+                "lg_net": 12_153_900,
+                "md_net": -61_535_500,
+                "sm_net": 169_539_700,
+            },
+        ][: int(n or 20)]
+
+
+class _Margin:
+    """Mirror of ``wmshare.api.MarginApi``."""
+
+    def query(self, symbol: str, limit: int = 20, _df: bool = False) -> list[dict]:
+        return [
+            {
+                "trade_date": "2026-11-12",
+                "fin_balance": 15_214_545_810,
+                "fin_buy_amt": 371_880_306,
+                "fin_repay_amt": 250_843_687,
+                "loan_balance": 305_393_968.5,
+                "loan_repay_vol": 5400,
+                "loan_sell_vol": 7900,
+                "secucode": "600519.SH",
+                "security_code": "600519",
+                "security_name": "贵州茅台",
+            },
+        ][: int(limit)]
+
+
+class _Cbond:
+    """Mirror of ``wmshare.api.CbondApi.board``."""
+
+    def board(self, _raw: bool = False, _df: bool = False) -> list[dict]:
+        return [
+            {
+                "asOf": "2026-11-13",
+                "bondCode": "111027",
+                "bondName": "百龙转债",
+                "bondPrice": 101.2,
+                "convertPrice": 19.42,
+                "bondRating": "AA",
+                "stockCode": "000829",
+                "remainSize": 6.2,
+                "bias20": None,
+            },
+        ]
 
 
 class _Filings:

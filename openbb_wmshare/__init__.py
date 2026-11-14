@@ -44,14 +44,21 @@ from openbb_wmshare.models.index_historical import (
 )
 from openbb_wmshare.models.index_search import WmshareIndexSearchFetcher
 from openbb_wmshare.models.index_snapshots import WmshareIndexSnapshotsFetcher
+from openbb_wmshare.models.index_valuation_trend import WmshareIndexValuationTrendFetcher
 from openbb_wmshare.models.insider_trading import WmshareInsiderTradingFetcher
 from openbb_wmshare.models.institutional_ownership import WmshareInstitutionalOwnershipFetcher
 from openbb_wmshare.models.key_executives import WmshareKeyExecutivesFetcher
 from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
+from openbb_wmshare.models.market_extras import (
+    WmshareCbondBoardFetcher,
+    WmshareMarginFetcher,
+    WmshareMoneyflowFetcher,
+)
 from openbb_wmshare.models.market_movers import (
     WmshareEquityGainersFetcher,
     WmshareEquityLosersFetcher,
 )
+from openbb_wmshare.models.screener_query import WmshareScreenerFetcher
 from openbb_wmshare.models.segments_revenue import (
     WmshareRevenueBusinessLineFetcher,
     WmshareRevenueGeographicFetcher,
@@ -101,6 +108,11 @@ wmshare_provider = Provider(
         "IncomeStatementGrowth": WmshareIncomeStatementGrowthFetcher,
         "BalanceSheetGrowth": WmshareBalanceSheetGrowthFetcher,
         "CashFlowStatementGrowth": WmshareCashFlowStatementGrowthFetcher,
+        "WmshareScreener": WmshareScreenerFetcher,
+        "WmshareIndexValuationTrend": WmshareIndexValuationTrendFetcher,
+        "WmshareMoneyflow": WmshareMoneyflowFetcher,
+        "WmshareMargin": WmshareMarginFetcher,
+        "WmshareCbondBoard": WmshareCbondBoardFetcher,
     },
     repr_name="wmshare (A-share / Hong Kong / US)",
     instructions=(

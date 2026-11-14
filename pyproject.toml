@@ -42,6 +42,9 @@ Issues = "https://github.com/open-winmale/openbb-wmshare/issues"
 [project.entry-points."openbb_provider_extension"]
 wmshare = "openbb_wmshare:wmshare_provider"
 
+[project.entry-points."openbb_core_extension"]
+wmshare = "openbb_wmshare.wmshare_router:router"
+
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"

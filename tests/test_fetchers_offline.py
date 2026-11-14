@@ -41,14 +41,21 @@ from openbb_wmshare.models.index_constituents import WmshareIndexConstituentsFet
 from openbb_wmshare.models.index_historical import WmshareIndexHistoricalFetcher
 from openbb_wmshare.models.index_search import WmshareIndexSearchFetcher
 from openbb_wmshare.models.index_snapshots import WmshareIndexSnapshotsFetcher
+from openbb_wmshare.models.index_valuation_trend import WmshareIndexValuationTrendFetcher
 from openbb_wmshare.models.insider_trading import WmshareInsiderTradingFetcher
 from openbb_wmshare.models.institutional_ownership import WmshareInstitutionalOwnershipFetcher
 from openbb_wmshare.models.key_executives import WmshareKeyExecutivesFetcher
 from openbb_wmshare.models.key_metrics import WmshareKeyMetricsFetcher
+from openbb_wmshare.models.market_extras import (
+    WmshareCbondBoardFetcher,
+    WmshareMarginFetcher,
+    WmshareMoneyflowFetcher,
+)
 from openbb_wmshare.models.market_movers import (
     WmshareEquityGainersFetcher,
     WmshareEquityLosersFetcher,
 )
+from openbb_wmshare.models.screener_query import WmshareScreenerFetcher
 from openbb_wmshare.models.segments_revenue import (
     WmshareRevenueBusinessLineFetcher,
     WmshareRevenueGeographicFetcher,
@@ -335,6 +342,11 @@ def test_provider_registers_expected_models():
         "IncomeStatementGrowth",
         "BalanceSheetGrowth",
         "CashFlowStatementGrowth",
+        "WmshareScreener",
+        "WmshareIndexValuationTrend",
+        "WmshareMoneyflow",
+        "WmshareMargin",
+        "WmshareCbondBoard",
     }
     assert set(wmshare_provider.fetcher_dict) == expected
 
@@ -654,3 +666,80 @@ def test_cashflow_growth_fields(fake_client):
     result = run(WmshareCashFlowStatementGrowthFetcher, {"symbol": "600519", "limit": 2})
     latest = result[0]
     assert latest.net_cash_operating_growth is not None
+
+
+# ---------------------------------------------------------------- batch 1d
+
+
+def test_screener_rows_and_hit_count(fake_client):
+    result = run(
+        WmshareScreenerFetcher,
+        {"where": "$BONUS_RATE_3Y_AVG_LAST > 0.03 && $ROE_TTM_LAST > 0.15"},
+    )
+
+    rows = result.result if hasattr(result, "result") else result
+    assert rows[0].symbol == "900948.SH"
+    assert rows[0].name == "伊泰B股"
+    # $codes named in the expression ride along as extras
+    dumped = rows[0].model_dump()
+    assert dumped["$ROE_TTM_LAST"] == pytest.approx(0.1631)
+    # the true whole-market hit count rides the metadata, not the row count
+    if hasattr(result, "metadata"):
+        assert result.metadata["count"] == 108
+
+
+def test_index_valuation_trend_attaches_percentiles(fake_client):
+    fake_client.index.trend = lambda key, window="5y": {
+        "ok": True,
+        "key": key,
+        "as_of": "2026-11-12",
+        "density": "weekly",
+        "points": [
+            {"date": "2026-11-12", "pe": 13.39, "pb": 1.24},
+            {"date": "2026-11-05", "pe": 13.10, "pb": 1.21},
+        ],
+        "pe_pct": 0.7548,
+        "pb_pct": 0.5204,
+        "pct": {
+            "pe": {"p3": 0.30, "p5": 0.7548, "p10": None},
+            "pb": {"p3": 0.48, "p5": 0.5204, "p10": None},
+        },
+    }
+
+    result = run(WmshareIndexValuationTrendFetcher, {"key": "index.hs300", "window": "5y"})
+
+    assert len(result) == 2
+    row = result[0]
+    assert row.symbol == "index.hs300"
+    assert row.pe == pytest.approx(13.39)
+    assert row.pe_pct_window == pytest.approx(0.7548)  # p5 of the 5y window
+    assert row.pb_pct_window == pytest.approx(0.5204)
+
+
+def test_moneyflow_maps_tiers(fake_client):
+    result = run(WmshareMoneyflowFetcher, {"symbol": "600519", "n": 2})
+
+    row = result[0]
+    assert row.symbol == "600519.SH"
+    assert row.net_mf == pytest.approx(328_649_400)
+    assert row.elg_net == pytest.approx(-7_507_400)
+
+
+def test_margin_maps_balances_and_strips_display_fields(fake_client):
+    row = run(WmshareMarginFetcher, {"symbol": "600519"})[0]
+
+    assert row.symbol == "600519.SH"
+    assert row.fin_balance == pytest.approx(15_214_545_810)
+    assert row.loan_sell_vol == 7900
+    dumped = row.model_dump()
+    assert "secucode" not in dumped  # display-only upstream fields dropped
+
+
+def test_cbond_board_maps_camel_keys(fake_client):
+    result = run(WmshareCbondBoardFetcher, {})
+
+    row = result[0]
+    assert row.bond_code == "111027"
+    assert row.bond_name == "百龙转债"
+    assert row.convert_price == pytest.approx(19.42)
+    assert row.stock_code == "000829"

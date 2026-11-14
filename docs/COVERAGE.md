@@ -8,7 +8,7 @@
 
 ---
 
-## 一、已注册端点（32 个标准模型）
+## 一、已注册端点（32 个标准模型 + 5 个自建命令）
 
 | OpenBB 命令 | 标准模型 | cn | hk | us | 状态 |
 |---|---|---|---|---|---|
@@ -44,6 +44,18 @@
 | `index.constituents` | IndexConstituents | ✅ | ⛔ | ⛔ | ✅ |
 | `index.search` | IndexSearch | ✅ | ⛔ | ⛔ | ✅ |
 | `index.available` | AvailableIndices | ✅ | ⛔ | ⛔ | ✅ |
+
+---
+
+## 一.1 自建命名空间 `obb.wmshare.*`（语义不匹配标准模型的独有能力）
+
+| 命令 | 说明 | cn | hk | us | 备注 |
+|---|---|---|---|---|---|
+| `wmshare.screener` | XS 表达式全市场扫描；`count`=真实命中数，`$码` 透传为列 | ✅ | ⛔ | ⛔ | 语义不匹配 EquityScreener 标准模型 |
+| `wmshare.index_valuation_trend` | 周频整体法 PE/PB + 窗口分位（3y/5y/10y） | ✅ | ⛔ | ⛔ | 上游 indices.trend 预热缓存 |
+| `wmshare.moneyflow` | 日频主力/超大/大/中/小单净流入 | ✅ | ⛔ | ⛔ | |
+| `wmshare.margin` | 融资融券余额 | ✅ | ⛔ | ⛔ | |
+| `wmshare.cbond_board` | 转债全市场面板（~1000 行） | ✅ | ⛔ | ⛔ | |
 
 ---
 
