@@ -161,10 +161,53 @@ def test_hk_dividends_are_returned():
     assert all(row.symbol == "00700.HK" for row in result)
 
 
-@requires_credentials
-def test_statements_reject_non_a_share_symbols():
-    with pytest.raises(OpenBBError, match="A-shares only"):
-        call("IncomeStatement", symbol="00700.HK")
+def _mkt_deployed() -> bool:
+    """One-shot probe: does the gateway serve rptdom.mkt_* yet?
+
+    The script-repo commit that adds the mkt_* catalog functions is local
+    until the deploy gate; these tests skip (rather than fail) until then.
+    """
+    try:
+        import wmshare
+
+        us = wmshare.Client.from_env(market="us")
+        doc = us.call("rptdom.mkt_latest", sym="AAPL", domain="fin.income_statement")
+        return isinstance(doc, dict) and doc.get("annual") is not None
+    except Exception:
+        return False
+
+
+_mkt_ready = pytest.mark.skipif(
+    not _mkt_deployed(), reason="script repo mkt_* not deployed yet (deploy gate)"
+)
+
+
+@_mkt_ready
+@pytest.mark.parametrize(
+    ("symbol", "kind"),
+    [("AAPL", "income"), ("00700.HK", "income"), ("AAPL", "balance"), ("AAPL", "cash")],
+)
+def test_hk_us_statements_via_mkt_wide_tables(symbol, kind):
+    result = call(
+        {"income": "IncomeStatement", "balance": "BalanceSheet", "cash": "CashFlowStatement"}[kind],
+        symbol=symbol,
+        limit=2,
+    ).results
+
+    assert result
+    latest = result[0]
+    assert latest.period_ending is not None
+    assert latest.fiscal_year >= 2024
+    assert latest.currency in ("USD", "HKD")
+
+
+@_mkt_ready
+def test_cn_quarterly_sampling_q1():
+    """A2: cn statements accept sampling=Q1 (annual-report Q4 stays default)."""
+    result = call("IncomeStatement", symbol="600519.SH", limit=2, sampling="Q1").results
+
+    assert result
+    assert all(row.fiscal_period in ("Q1", "FY") for row in result)
 
 
 @requires_credentials
