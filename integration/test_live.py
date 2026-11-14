@@ -443,9 +443,7 @@ def test_income_growth_matches_statement_levels():
 
 @requires_credentials
 def test_screener_expression_scan():
-    df = obb_helper().wmshare.screener(
-        where="$ROE_TTM_LAST > 0.15", provider="wmshare"
-    ).to_df()
+    df = obb_helper().wmshare.screener(where="$ROE_TTM_LAST > 0.15", provider="wmshare").to_df()
 
     assert len(df) > 0
     assert "$ROE_TTM_LAST" in df.columns
@@ -454,9 +452,11 @@ def test_screener_expression_scan():
 
 @requires_credentials
 def test_index_valuation_trend_points():
-    df = obb_helper().wmshare.index_valuation_trend(
-        key="index.hs300", window="5y", provider="wmshare"
-    ).to_df()
+    df = (
+        obb_helper()
+        .wmshare.index_valuation_trend(key="index.hs300", window="5y", provider="wmshare")
+        .to_df()
+    )
 
     assert len(df) >= 100
     assert df["pe_pct_window"].iloc[0] is not None

@@ -275,3 +275,208 @@ def compute_growth(
             else:
                 record[growth_key] = None
     return records
+
+
+# ---------------------------------------------------------------- market tables
+
+_CAMEL_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+_META_KEYS = frozenset(
+    {
+        "CreatedAt",
+        "UpdatedAt",
+        "catalog",
+        "midx",
+        "monthNum",
+        "orgCode",
+        "orgType",
+        "orgTypeName",
+        "quoteName",
+        "report",
+        "samplingTs",
+        "samplingType",
+        "samplingName",
+        "samplingStart",
+        "securityCode",
+        "securityNameAbbr",
+        "settleDate",
+        "statuses",
+        "symbol",
+        "tip",
+        "secucode",
+        "updateDate",
+        "noticeDate",
+        "accountingStandard",
+        "exchange",
+        "fiscalYear",
+        "annual",
+        "sampling",
+    }
+)
+"""Wide-table bookkeeping columns: stripped, never surfaced as line items."""
+
+# Semantic alignments where OpenBB's conventional name differs from the
+# mechanical camelCase→snake conversion. Keyed by market + statement kind;
+# unmapped columns keep their mechanically converted name as extras.
+MKT_FIELD_OVERRIDES: dict[str, dict[str, dict[str, str]]] = {
+    "income": {
+        "us": {
+            "total_operating_revenue": "total_revenue",
+            "main_operating_income": "operating_revenue",
+            "main_operating_cost": "operating_cost",
+            "profit_before_tax": "total_profit",
+            "profit_after_tax": "profit_after_tax",
+            "parent_net_profit": "np_parent",
+            "net_profit_attributableto_ordinary_shareholders": "np_parent",
+            "basic_eps": "eps_basic",
+            "diluted_eps": "eps_diluted",
+            "sale_expense": "selling_expense",
+            "manage_expense": "admin_expense",
+            "researchand_development_expense": "rd_expense",
+            "other_income_expense": "other_income",
+            "nonoperating_items": "nonoperating_income",
+        },
+        "hk": {
+            "turnover": "total_revenue",
+            "other_revenues": "other_operating_revenue_items",
+            "profit_before_tax": "total_profit",
+            "parent_net_profit": "np_parent",
+            "net_profit_attributableto_ordinary_shareholders": "np_parent",
+            "basic_eps": "eps_basic",
+            "diluted_eps": "eps_diluted",
+            "sale_expense": "selling_expense",
+            "manage_expense": "admin_expense",
+            "financing_cost": "finance_expense",
+            "nonoperational_items": "nonoperating_income",
+            "other_profit_items": "nonoperating_expense",
+        },
+        "cn": {
+            "parent_net_profit": "np_parent",
+            "deduct_parent_net_profit": "np_parent_deducted",
+            "basic_eps": "eps_basic",
+            "diluted_eps": "eps_diluted",
+            "manage_expense": "admin_expense",
+            "business_taxesand_surcharges": "tax_and_surtax",
+            "operate_cost": "operating_cost",
+            "operate_expense": "operating_expense",
+            "operate_income": "operating_income",
+            "operate_income_balance": "operating_income_total",
+            "operate_profit": "operating_profit",
+            "gains_lossesfrom_changesin_fair_value": "fair_value_change_income",
+            "credit_impairment_income": "credit_impairment_loss",
+        },
+    },
+    "balance": {
+        "us": {
+            "cashand_cash_equivalents": "monetary_funds",
+            "accounts_receivable": "accounts_receivable",
+            "inventory": "inventories",
+            "property_plantand_equipment": "fixed_assets",
+            "intangible_asset": "intangible_assets",
+            "other_current_asset": "other_current_assets",
+            "other_noncurrent_asset": "other_noncurrent_assets",
+            "other_current_liab": "other_current_liabilities",
+            "other_noncurrent_liab": "other_noncurrent_liabilities",
+            "accounts_payable": "accounts_payable",
+            "notes_payable_current": "notes_payable",
+            "longterm_liab": "noncurrent_liab_1y",
+            "retained_earnings": "retained_earnings",
+            "deferred_revenue_current": "advances_from_customers",
+            "common_shares": "share_capital",
+            "equity_attributableto_parent_company_shareholders": "total_parent_equity",
+        },
+        "hk": {
+            "cashand_cash_equivalents": "monetary_funds",
+            "inventories": "inventories",
+            "accounts_receivable": "accounts_receivable",
+            "accounts_payable": "accounts_payable",
+            "bills_payable": "notes_payable",
+            "constructionin_progress": "cip",
+            "intangible_asset": "intangible_assets",
+            "deferred_tax_asset": "deferred_tax_assets",
+            "deferred_tax_liab": "deferred_tax_liabilities",
+            "long_term_loans": "long_term_loans",
+            "capital_surplus": "capital_reserve",
+            "retained_earnings": "retained_earnings",
+            "equity_attributableto_parent_company_shareholders": "total_parent_equity",
+        },
+        "cn": {},
+    },
+    "cashflow": {
+        "us": {
+            "net_cash_flowfrom_operating_activities": "net_cash_operating",
+            "net_cash_flowfrom_investing_activities": "net_cash_investing",
+            "net_cash_flowfrom_financing_activities": "net_cash_financing",
+            "increase_decreasein_cashand_cash_equivalents": "net_cash_increase",
+            "ending_cashand_cash_equivalents": "cash_end",
+            "beginning_cashand_cash_equivalents": "cash_begin",
+            "purchaseof_fixed_asset": "capex_cash",
+            "dividend_payments": "cash_dividend_paid",
+            "net_profit": "net_profit",
+        },
+        "hk": {
+            "cash_generatedfrom_operations": "net_cash_operating",
+            "net_cash_flowfrom_investing_activities": "net_cash_investing",
+            "net_cash_flowfrom_financing_activities": "net_cash_financing",
+            "increase_decreasein_cashand_cash_equivalents": "net_cash_increase",
+            "ending_cashand_cash_equivalents": "cash_end",
+            "beginning_cashand_cash_equivalents": "cash_begin",
+            "acquisitionof_intangibleand_other_asset": "intangible_assets_cash",
+            "disposalof_fixed_asset": "fixed_assets_disposal_cash",
+            "dividends_paid_financing": "cash_dividend_paid",
+            "depreciationand_amortization": "depreciation_amortization",
+        },
+        "cn": {},
+    },
+}
+
+
+def camel_to_snake(name: str) -> str:
+    """Mechanical ``basicEps`` → ``basic_eps`` conversion (lossless base form)."""
+    text = _CAMEL_RE.sub("_", str(name or ""))
+    return text.strip("_").lower()
+
+
+def mkt_normalize(doc: dict[str, Any], market: str, kind: str) -> dict[str, Any]:
+    """Normalize one wide-table doc (hk/us) onto snake_case line items.
+
+    Mechanics: strip bookkeeping columns, mechanically convert camelCase to
+    snake_case, then apply the market+kind override map for semantic
+    alignments (``turnover`` → ``total_revenue``). Unmapped columns surface
+    under their converted names as extras — nothing is dropped or invented.
+    Period identity comes from the doc itself (``annual`` / ``sampling`` /
+    ``samplingEnd``), and ``currency`` from the doc's own currency fields.
+    """
+    overrides = MKT_FIELD_OVERRIDES.get(kind, {}).get(market, {})
+    record: dict[str, Any] = {}
+    currency = None
+    period_end = None
+    for key, value in doc.items():
+        if key in _META_KEYS:
+            continue
+        if key == "currency":
+            currency = value
+            continue
+        if key == "currencyName":
+            currency = currency or value
+            continue
+        if key == "samplingEnd" and value:
+            period_end = str(value)[:10]
+            continue
+        if key == "reportDate" and value and not period_end:
+            period_end = str(value)[:10]
+            continue
+        snake = camel_to_snake(key)
+        snake = overrides.get(snake, snake)
+        # An override target that already exists keeps the first (primary) value.
+        if snake in record:
+            continue
+        record[snake] = value
+
+    annual = doc.get("annual")
+    sampling = doc.get("sampling") or "Q4"
+    year, fiscal_period, derived_end = parse_period(f"{annual}:{sampling}")
+    record["fiscal_year"] = year
+    record["fiscal_period"] = fiscal_period
+    record["period_ending"] = period_end or derived_end
+    record["currency"] = currency
+    return record

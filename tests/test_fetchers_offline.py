@@ -198,10 +198,23 @@ def test_cash_flow_maps_three_activities(fake_client):
     assert latest.net_cash_financing == pytest.approx(-40_000_000_000.0)
 
 
-def test_statement_endpoints_reject_non_a_share_symbols(fake_client):
-    """HK/US statements are not published upstream; failing loudly beats empty data."""
+def test_statements_serve_hk_us_via_mkt_wide_tables(fake_client):
+    """HK/US statements flow through rptdom.mkt_* wide-table functions."""
+    result = run(WmshareIncomeStatementFetcher, {"symbol": "AAPL", "limit": 2})
+
+    assert len(result) == 2
+    latest = result[0]
+    assert latest.symbol == "AAPL"
+    assert latest.period_ending is not None
+    assert latest.fiscal_year >= 2024
+    # mapped from the USGAAP columns (totalOperatingRevenue -> total_revenue)
+    assert latest.total_revenue is not None
+
+
+def test_statement_non_cn_error_kept_for_ratios_only(fake_client):
+    """ratios still derive from cn statements; hk/us ratios stay unsupported."""
     with pytest.raises(OpenBBError, match="A-shares only"):
-        run(WmshareIncomeStatementFetcher, {"symbol": "00700.HK"})
+        run(WmshareFinancialRatiosFetcher, {"symbol": "00700.HK"})
 
 
 def test_key_metrics_maps_indicator_codes(fake_client):

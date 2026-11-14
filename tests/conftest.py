@@ -547,6 +547,15 @@ class FakeClient:
             return self.kline.index_live_many(kwargs.get("keys") or [])
         if name == "stocks.industry_members":
             return self.industry_members(kwargs.get("ind"))
+        if name == "rptdom.mkt_latest":
+            return self.mkt_doc(kwargs.get("sym"), kwargs.get("domain"), 2026, "Q4")
+        if name == "rptdom.mkt_get":
+            return self.mkt_doc(
+                kwargs.get("sym"),
+                kwargs.get("domain"),
+                kwargs.get("annual"),
+                kwargs.get("sampling"),
+            )
         if name == "screener.query":
             return {
                 "count": 108,
@@ -570,6 +579,53 @@ class FakeClient:
     def industry_members(self, ind: str | None) -> list[dict]:
         """Emulate ``stocks.industry_members``: member rows of one industry."""
         return [{"symbol": "600519", "name": "贵州茅台", "industry": ind, "industry_name": "白酒"}]
+
+    def mkt_doc(
+        self, sym: str | None, domain: str | None, annual: int | None, sampling: str | None
+    ) -> dict | None:
+        """Emulate ``rptdom.mkt_get``: USGAAP/HK camelCase wide doc.
+
+        Only 2025/2026 Q4 exist; other periods return nil (the fetcher must
+        skip them, never as-of fill). Symbol determines the column flavor.
+        """
+        if (annual or 2026) not in (2025, 2026) or (sampling or "Q4") != "Q4":
+            return None
+        code = str(sym or "").upper()
+        if code == "AAPL":
+            return {
+                "accountingStandard": "USGAAP",
+                "annual": annual,
+                "sampling": sampling,
+                "samplingEnd": f"{annual}-09-27",
+                "currency": "USD",
+                "currencyName": "USD",
+                "totalOperatingRevenue": 400_000_000_000.0,
+                "operatingCost": 210_000_000_000.0,
+                "grossProfit": 190_000_000_000.0,
+                "operatingProfit": 120_000_000_000.0,
+                "netProfit": 100_000_000_000.0,
+                "parentNetProfit": 99_000_000_000.0,
+                "basicEps": 6.5,
+                "dilutedEps": 6.4,
+                "CreatedAt": "x",
+                "midx": 3,
+            }
+        return {
+            "accountingStandard": "HKFRS",
+            "annual": annual,
+            "sampling": sampling,
+            "samplingEnd": f"{annual}-12-31",
+            "currency": "HKD",
+            "currencyName": "HKD",
+            "turnover": 660_000_000_000.0,
+            "grossProfit": 350_000_000_000.0,
+            "operatingProfit": 180_000_000_000.0,
+            "netProfit": 160_000_000_000.0,
+            "parentNetProfit": 155_000_000_000.0,
+            "basicEps": 17.0,
+            "CreatedAt": "x",
+            "midx": 2,
+        }
 
     class _Screener:
         """Mirror of ``wmshare.api.ScreenerApi``'s used surface."""
