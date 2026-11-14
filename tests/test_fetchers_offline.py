@@ -756,3 +756,19 @@ def test_cbond_board_maps_camel_keys(fake_client):
     assert row.bond_name == "百龙转债"
     assert row.convert_price == pytest.approx(19.42)
     assert row.stock_code == "000829"
+
+
+# ---------------------------------------------------------------- batch 2c
+
+
+def test_cn_statement_threads_sampling_to_upstream(fake_client):
+    """sampling rides the opts into rptdom.statement (A2 contract)."""
+    run(WmshareIncomeStatementFetcher, {"symbol": "600519", "limit": 2, "sampling": "Q1"})
+
+    assert fake_client.last_statement_opts.get("sampling") == "Q1"
+
+
+def test_cn_statement_default_sampling_is_q4(fake_client):
+    run(WmshareIncomeStatementFetcher, {"symbol": "600519", "limit": 2})
+
+    assert fake_client.last_statement_opts.get("sampling") == "Q4"

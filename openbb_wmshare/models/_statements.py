@@ -82,7 +82,9 @@ async def fetch_statement(
     client = get_client(parsed.market, credentials)
 
     if parsed.market == "cn":
-        return await _fetch_cn(client, parsed, kind, domain, limit=limit, scope=scope)
+        return await _fetch_cn(
+            client, parsed, kind, domain, limit=limit, scope=scope, sampling=sampling
+        )
     return await _fetch_mkt(client, parsed, kind, domain, limit=limit, sampling=sampling)
 
 
@@ -94,14 +96,15 @@ async def _fetch_cn(
     *,
     limit: int | None,
     scope: str,
+    sampling: str,
 ) -> list[dict]:
-    """A-share path: rptdom.statement + pivot (annual, 合并/母公司)."""
+    """A-share path: rptdom.statement + pivot (sampling 档, 缺省 Q4 年报)."""
     rows = await call(
         client.call,
         "rptdom.statement",
         sym=parsed.code,
         domain=domain,
-        opts={"scope": _SCOPE_LABEL.get(scope, "合并"), "n": int(limit or 5)},
+        opts={"scope": _SCOPE_LABEL.get(scope, "合并"), "n": int(limit or 5), "sampling": sampling},
         context=f"statements.{kind}({parsed.canonical})",
     )
     records = pivot(rows or [])

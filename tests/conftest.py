@@ -534,6 +534,7 @@ class FakeClient:
             domain = kwargs.get("domain")
             if domain not in STATEMENTS:
                 raise ValueError(f"unknown domain {domain!r}")
+            self.last_statement_opts = kwargs.get("opts") or {}
             return STATEMENTS[domain]
         if name == "indices.members":
             return self.index.members(kwargs.get("key"))
