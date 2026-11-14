@@ -265,7 +265,7 @@ obb.wmshare.cbond_board()  # cbond.board
 
 **验收**：`openbb-build` 后 `obb.reference` 出现新命令；`pytest -m integration` 全绿。
 
-### 阶段 2：A 类 —— 🔄 代码就绪、待部署（2026-11-14）
+### 阶段 2：A 类 —— ✅ 已完成（2026-11-14 部署后 live 验证通过）
 
 - **A1 港美三表**：script 仓 `b79c0681`（rptdom.mkt_latest/mkt_get，跨市场宽表 Route B，无需动 airflow）+ SDK `6c319b6`（v1.4.0 收录）+ provider `120c50d`（hk/us 三表走 mkt 通路，列映射机械转换+语义 override）。
 - **A2 季报**：script 仓 `a778aae7`（sampling 贯穿 + statement_periods）+ SDK `f931285`（v1.5.0）+ provider `0187ee9`（cn sampling 参数）。

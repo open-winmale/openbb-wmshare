@@ -368,36 +368,41 @@ MKT_FIELD_OVERRIDES: dict[str, dict[str, dict[str, str]]] = {
     "balance": {
         "us": {
             "cashand_cash_equivalents": "monetary_funds",
-            "accounts_receivable": "accounts_receivable",
             "inventory": "inventories",
             "property_plantand_equipment": "fixed_assets",
             "intangible_asset": "intangible_assets",
+            "total_asset": "total_assets",
+            "total_liab": "total_liabilities",
+            "total_current_asset": "total_current_assets",
+            "total_current_liab": "total_current_liabilities",
+            "total_noncurrent_asset": "total_noncurrent_assets",
+            "total_noncurrent_liab": "total_noncurrent_liabilities",
             "other_current_asset": "other_current_assets",
             "other_noncurrent_asset": "other_noncurrent_assets",
             "other_current_liab": "other_current_liabilities",
             "other_noncurrent_liab": "other_noncurrent_liabilities",
-            "accounts_payable": "accounts_payable",
             "notes_payable_current": "notes_payable",
-            "longterm_liab": "noncurrent_liab_1y",
-            "retained_earnings": "retained_earnings",
+            "shortterm_debt": "short_term_loans",
             "deferred_revenue_current": "advances_from_customers",
             "common_shares": "share_capital",
             "equity_attributableto_parent_company_shareholders": "total_parent_equity",
         },
         "hk": {
             "cashand_cash_equivalents": "monetary_funds",
-            "inventories": "inventories",
-            "accounts_receivable": "accounts_receivable",
-            "accounts_payable": "accounts_payable",
+            "total_asset": "total_assets",
+            "total_liab": "total_liabilities",
+            "total_current_asset": "total_current_assets",
+            "total_current_liab": "total_current_liabilities",
+            "total_noncurrent_asset": "total_noncurrent_assets",
+            "total_noncurrent_liab": "total_noncurrent_liabilities",
             "bills_payable": "notes_payable",
             "constructionin_progress": "cip",
             "intangible_asset": "intangible_assets",
             "deferred_tax_asset": "deferred_tax_assets",
             "deferred_tax_liab": "deferred_tax_liabilities",
-            "long_term_loans": "long_term_loans",
-            "capital_surplus": "capital_reserve",
-            "retained_earnings": "retained_earnings",
+            "retained_earnings_accumulated_deficit": "retained_earnings",
             "equity_attributableto_parent_company_shareholders": "total_parent_equity",
+            "minority_equity": "minority_interest",
         },
         "cn": {},
     },
@@ -454,10 +459,10 @@ def mkt_normalize(doc: dict[str, Any], market: str, kind: str) -> dict[str, Any]
         if key in _META_KEYS:
             continue
         if key == "currency":
-            currency = value
+            currency = value or None
             continue
         if key == "currencyName":
-            currency = currency or value
+            currency = currency or (value or None)
             continue
         if key == "samplingEnd" and value:
             period_end = str(value)[:10]
@@ -478,5 +483,5 @@ def mkt_normalize(doc: dict[str, Any], market: str, kind: str) -> dict[str, Any]
     record["fiscal_year"] = year
     record["fiscal_period"] = fiscal_period
     record["period_ending"] = period_end or derived_end
-    record["currency"] = currency
+    record["currency"] = currency or None
     return record

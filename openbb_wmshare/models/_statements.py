@@ -143,8 +143,12 @@ async def _fetch_mkt(
 
     anchor_year = int(latest["annual"])
     wanted = int(limit or 5)
+    # 缺档容忍窗口: the anchor year may not have this sampling published yet
+    # (e.g. the 2026 annual report lands in 2027-03), so walk up to 3 extra
+    # years back until `wanted` periods are collected.
+    max_years = wanted + 3
     records: list[dict] = []
-    for offset in range(wanted):
+    for offset in range(max_years):
         annual = anchor_year - offset
         doc = await call(
             client.call,
@@ -160,7 +164,11 @@ async def _fetch_mkt(
             continue
         record = mkt_normalize(doc, parsed.market, kind)
         record["symbol"] = parsed.canonical
+        # wide-table currency column is often an empty string; fall back per market
+        record["currency"] = record.get("currency") or {"us": "USD", "hk": "HKD"}.get(parsed.market)
         records.append(record)
+        if len(records) >= wanted:
+            break
     if not records:
         raise EmptyDataError(f"No statement data returned for {parsed.canonical}.")
     return records

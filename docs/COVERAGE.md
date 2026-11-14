@@ -4,7 +4,7 @@
 （2026-11-13，wmshare SDK 1.19.1，OpenBB Platform 5.0 / openbb-core 2.0.1）。未经验证的
 结论不写进来。
 
-图例：✅ 可用 ｜ ⚠️ 可用但有明确限制 ｜ ❌ 未注册（上游有数据，provider 未接）｜ ⛔ 上游无数据 ｜ 🔒 代码就绪、待上游部署后 live
+图例：✅ 可用 ｜ ⚠️ 可用但有明确限制 ｜ ❌ 未注册（上游有数据，provider 未接）｜ ⛔ 上游无数据
 
 ---
 
@@ -16,9 +16,9 @@
 | `equity.price.quote` | EquityQuote | ✅ | ✅ | ✅ | ✅ |
 | `equity.search` | EquitySearch | ✅ | ✅ | ✅ | ✅ |
 | `equity.profile` | EquityInfo | ✅ | ⚠️ | ⚠️ | hk 行业名待实测；industry_name 走低成本 `industry_members` 路径 |
-| `equity.fundamental.income` | IncomeStatement | ✅ | 🔒 | 🔒 | 🔒=代码就绪，待 script 仓部署后 live（mkt 宽表，季度原币） |
-| `equity.fundamental.balance` | BalanceSheet | ✅ | 🔒 | 🔒 | 同上 |
-| `equity.fundamental.cash` | CashFlowStatement | ✅ | 🔒 | 🔒 | 同上 |
+| `equity.fundamental.income` | IncomeStatement | ✅ | ✅ | ✅ | 港美走 mkt 宽表（季度原币，2026-11-14 部署后 live） |
+| `equity.fundamental.balance` | BalanceSheet | ✅ | ✅ | ✅ | 同上 |
+| `equity.fundamental.cash` | CashFlowStatement | ✅ | ✅ | ✅ | 同上 |
 | `equity.fundamental.metrics` | KeyMetrics | ✅ | ✅ | ✅ | ✅ 仅 10 码 |
 | `equity.fundamental.ratios` | FinancialRatios | ✅ | ⛔ | ⛔ | ⚠️ 本地重算 |
 | `equity.fundamental.dividends` | HistoricalDividends | ✅ | ✅ | ✅ | ✅ |
