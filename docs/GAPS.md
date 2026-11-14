@@ -97,11 +97,11 @@ hk.eval_result('return store.get("fin.income", "hk.00700", 2025, "Q4")')
 **验收**：`client.call("rptdom.statement", sym="00700", domain="fin.income_statement")` 返回非空，
 且字段与 A 股同口径（同名 + 同单位）。
 
-**过渡通路（provider 侧，未实施）**：script 修复前，provider 理论上可经
-`eval_result('return store.get("fin.income", "us.AAPL", <year>, "Q4")')` 直读域宽表先行服务
-（2026-11-14 复测：us 56 字段 / hk 60 字段，USGAAP 驼峰 + `CreatedAt/UpdatedAt/catalog`
-元数据键需清洗）。暂不实施：绕开目录合同会失去单位守护与归一化，且字段映射表应随 script
-修复一起定稿，避免两套口径。登记于 [BUGS.md S-2](BUGS.md#s-2-rptdomstatement-港美返空数据实际在库--open)。
+**标准流程约束**：`store.get` 是存储原语，不是目录函数——provider 侧**禁止**经
+`eval_result` 直读（会绕开 AppId 目录合同：无参数校验、无单位守护、无归一化）。上表的
+eval 探测仅作**诊断**用途（证明数据在库、定位 A 类缺口），不构成产品路径。港美三表的
+服务路径只有一条：script 仓按标准流程补 `xs:catalog` 函数（见上文补法），provider 像
+消费其他 XS 接口一样接它。
 
 ### A2. 季度报表（A 股季报）
 
@@ -141,12 +141,14 @@ opts={"n": 4, "sampling": "Q3"})` 返回季报行。
 
 **2026-11-14 补充探测**：
 - **美股行业数据确认存在**：`stocks.query_list`(us) 行含 `industry`（`industry.Y070102`）与
-  `industry_name`（英文名）；`$INDUSTRY_CUR("AAPL")` 返回 `industry.Y100103`。低成本名称路径：
-  `stocks.industry_members(ind="industry.Y100103")` 仅 19 行即含 `industry_name`
-  （"Consumer Electronics"）。注意 `stocks.query_list`(us) 全表单次 ~851k EC
+  `industry_name`（英文名）；`$INDUSTRY_CUR("AAPL")` 返回 `industry.Y100103`。名称解析用
+  **目录函数** `stocks.industry_members(ind=...)`（单行业仅几十行），不触全表接口——
+  `indicator.metrics` + `industry_members` 均为目录注册函数，与其他 XS 接口同一 AppId
+  标准流程。`stocks.query_list`(us) 全表单次 ~851k EC
   （[BUGS.md D-3](BUGS.md#d-3-stocksquery_listus-单次-851k-ec--open成本警示非错误)），
-  禁止按次全表拉取。
-- 港美三表 `store.get` 过渡通路复测通过，见 A1。
+  且 provider 禁止按次全表拉取。
+- 港美三表数据在库性已复测确认（us 56 / hk 60 字段），但**只作诊断结论**：服务路径必须走
+  script 层标准函数，见 A1 的标准流程约束。
 
 ### 2.1 P0：✅ 已完成（阶段 0，2026-11-13）
 
@@ -347,7 +349,7 @@ PY
 任一行从 `OK` 变 `FAIL` → 本仓文档与测试需同步降级，禁止静默保留 ✅。
 
 注意 `us.info.profile` 是 SDK 自带 helper，**它本身仍会 400**（5 码同一个 eval 的上游
-缺陷）。provider 已绕开它改走 `indicator.metrics`，所以该行 FAIL 不影响本仓能力。
+缺陷）。provider 已改走目录指标 `indicator.metrics`，所以该行 FAIL 不影响本仓能力。
 
 ---
 
@@ -355,6 +357,9 @@ PY
 
 - **数据先行**：回答「有没有」前必须 `store.get` 探到底，不要看到上层返回空就断言上游没有
   ——本次 `IndexHistorical` 与港美三表都是**上层结论错误**。
+- **只消费目录函数**：provider 一切取数面必须是目录注册函数（AppId + 目录合同：参数校验、
+  单位守护、归一化）。禁止 `eval_result` / store 原语直读作为产品路径；`store.get` 只用于
+  诊断探测（判断「数据是否在库」），探测结论必须转化为 script 层标准函数后才可接入。
 - **不混源**：一个 provider 只报真实可服务能力，不引入第二数据源冒充同口径。
 - **不本地重算已有指标**：上游有 `$码` 就用 `$码`（ratios 是反例）。
 - **不静默降级**：数据缺失要抛明确错误，不返回空表或占位值。

@@ -3,7 +3,7 @@
 本文件登记 **wmshare SDK、script 层、数据面** 已确认的缺陷。每条含证据与修复归属，供后续
 统一补充时逐条销账。能力缺口（数据有没有）见 [GAPS.md](GAPS.md)；本文件只记「有数据但行为错」。
 
-状态：`open`（未处理）/ `worked-around`（provider 侧已绕开，上游仍待修）/ `fixed`。
+状态：`open`（未处理）/ `worked-around`（provider 侧已规避——规避方式仍走目录函数或纯本地处理，上游待修）/ `fixed`。
 
 ---
 
@@ -15,7 +15,7 @@
   超出个股守卫带 `[0.4, 2.5]`。指数的量/额口径与个股不同，守卫不应套用。
 - **证据**：`kline.query_at_anchor(sym="399300.INDEX", ...)` 无此检查，返回正常序列
   （2026-11-13 实测 692 根，2024-01-02 → 2026-11-12）。
-- **绕开**：provider 走 `query_at_anchor`（`openbb_wmshare/models/index_historical.py`）。
+- **规避（仍为目录函数）**：provider 走目录函数 `kline.query_at_anchor`（L1，kline.yaml 注册；`openbb_wmshare/models/index_historical.py`）。
 - **修复建议**：守卫按 `symbol` 类型（`*.INDEX`）跳过或用指数专用量级带。
 
 ### SDK-2 `kline.bars` 错误提示与实际签名不符 — `open`
@@ -31,7 +31,7 @@
   `members/weights/trend/query_index_last_live` 全部要求 `index.hs300` 形式的键。
   按 keys() 的返回值去调 members 会失败。
 - **证据**：2026-11-13 实测 `keys()` → 6 个 `idx_1_*`；`universe_keys("broad")` → 11 个真键。
-- **绕开**：provider 一律走 `universe_keys(group)`（`utils/index_universe.py`）。
+- **规避（仍为目录函数）**：provider 一律走目录函数 `universe_keys(group)`（`utils/index_universe.py`）。
 - **修复建议**：`keys()` 返回真键，或文档标注其为内部 ID。
 
 ### SDK-4 `demo_client()` 签名漂移 — `open`
@@ -66,8 +66,8 @@
 - **症状**：5 个 profile 码塞进同一个 eval，`$STYLE_INDUSTRY` 在美股无定义，导致**整个请求**
   `HTTP 400: undefined variable`，其余 4 个本来有值的码一并失败。
 - **证据**：2026-11-13，`InfoApi.profile("AAPL")` 400；裁掉该码后其余码正常返回。
-- **绕开**：provider 改走 `indicator.metrics` + `MARKET_PROFILE_EXCLUSIONS` 按市场裁剪
-  （`openbb_wmshare/models/equity_info.py`）。
+- **规避（仍为目录函数）**：provider 改走 `indicator.metrics`（目录指标码）+
+  `MARKET_PROFILE_EXCLUSIONS` 按市场裁剪（`openbb_wmshare/models/equity_info.py`）。
 - **修复建议**：未定义码应返回 null 而非整包失败。
 
 ### S-2 `rptdom.statement` 港美返空，数据实际在库 — `open`（= GAPS A1）
@@ -77,14 +77,15 @@
   `hk.00700` 返回 60 个（2026-11-14 复测确认）。
 - **根因**：`bssaa/config.py::_rptdom_bssaa_task_configs()` 把 dest 硬编码为 `"cn"`；
   港美走独立 V1 管线（`hk/income`、`us/income`），未接入 rptdom 的 `alt.bssaa` 宽表。
-- **过渡通路**：provider 可经 `eval_result("return store.get(...)")` 直读域宽表（字段为
-  USGAAP 驼峰 + `CreatedAt/UpdatedAt/catalog` 元数据键，需清洗与列名映射）。
+- **路径约束**：provider 不得经 `eval_result` / store 原语直读（非目录函数、绕开标准
+  AppId 流程）；上表 `store.get` 仅作诊断。修复唯一路径是 script 层补标准
+  `xs:catalog` 函数，provider 像消费其他 XS 接口一样接它。
 - **修复建议**：script 层为港美补 `xs:catalog` 暴露函数，重跑 `extract_from_scripts.py`。
 
 ### S-3 `bonus.query_count_window` 恒返 0 — `open`
 
 - **症状**：窗口分红计数聚合缺陷，恒返回 0（`disc.bonus` 目录 notes 自认）。
-- **绕开**：SDK 的 `dividend.window_stats` 已自行计数绕开。
+- **规避（SDK 内部实现）**：SDK 的 `dividend.window_stats` 已自行计数，不经该缺陷函数。
 - **修复建议**：修上游 count 聚合。
 
 ---
@@ -96,8 +97,9 @@
 - **症状**：直觉别名 `000300.INDEX`（沪深300 常规代码）是**另一只**指数，序列止于
   2024-12-06；真序列在 `399300.INDEX`。误用会拿到两年前的静默错数据。
 - **证据**：2026-11-13 双探针对比。
-- **绕开**：provider 用 `airflow/catalog/index_registry_live.json` canon 段的别名快照解析
-  （`utils/index_canon.py`，`tools/refresh_index_canon.py --check` 为漂移门禁）。
+- **规避（数据文件，非取数通路）**：provider 用 `airflow/catalog/index_registry_live.json`
+  canon 段的别名快照解析（`utils/index_canon.py`，`tools/refresh_index_canon.py --check`
+  为漂移门禁）；取数本身仍走目录函数 `kline.query_at_anchor`。
 - **修复建议**：上游确认 000300.INDEX 语义，停更序列应废弃或补数。
 
 ### D-2 指数 bar `percent` 为百分数、个股为小数 — `worked-around`
@@ -105,7 +107,7 @@
 - **症状**：指数 quote store 的 `percent=-0.7798` 表示 -0.78%；个股 bar 的 `percent`
   是小数。同类字段跨域口径不一致，混用即 ×100 错位。
 - **证据**：2026-11-13，provider 用 `close/prev_close-1` 反推校验后才敢除 100。
-- **绕开**：`models/index_historical.py::_to_bar` 归一为小数并做价格反推校验。
+- **规避（provider 归一化）**：`models/index_historical.py::_to_bar` 归一为小数并做价格反推校验。
 - **修复建议**：上游统一为小数口径。
 
 ### D-3 `stocks.query_list`（us）单次 ~851k EC — `open`（成本警示，非错误）

@@ -167,11 +167,15 @@ def _to_info_row(
 async def _resolve_industry_name(client: Any, industry_key: str | None) -> str | None:
     """Resolve an industry key (``industry.S340501``) to its display name.
 
-    One cheap request via ``stocks.industry_members`` — verified live for
-    A-share SW codes and US Y-codes (2026-11-14, "Consumer Electronics" for
-    ``industry.Y100103``). The full-table alternative is off the table: US
-    ``stocks.query_list`` costs ~851k EC per call (BUGS.md D-3). A miss is a
-    valid outcome for a display name, so an empty result yields ``None``.
+    Standard-flow only: every call here is a catalog-registered surface
+    (``indicator.metrics`` for the key, ``stocks.industry_members`` L0 for the
+    name) going through the same AppId pipeline as every other XS interface —
+    no raw store access. One cheap request via ``stocks.industry_members`` —
+    verified live for A-share SW codes and US Y-codes (2026-11-14, "Consumer
+    Electronics" for ``industry.Y100103``). The full-table alternative is off
+    the table: US ``stocks.query_list`` costs ~851k EC per call (BUGS.md D-3).
+    A miss is a valid outcome for a display name, so an empty result yields
+    ``None``.
     """
     if not industry_key:
         return None
