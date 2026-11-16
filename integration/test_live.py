@@ -164,9 +164,9 @@ def test_hk_dividends_are_returned():
 def _unified_deployed() -> bool:
     """One-shot probe: does the gateway's statement entry serve hk/us yet?
 
-    The script-repo commit that turns ``rptdom.statement`` into the all-market
-    entry (hk/us wide-table pivot + quarter mode) is local until the deploy
-    gate; these tests skip (rather than fail) until then.
+    The script-repo commit that turns the statement entry all-market
+    (hk/us wide-table pivot + quarter mode) must be deployed first; these
+    tests skip (rather than fail) until then.
     """
     try:
         import wmshare
