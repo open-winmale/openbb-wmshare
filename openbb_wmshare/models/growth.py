@@ -27,7 +27,7 @@ from openbb_core.provider.standard_models.income_statement_growth import (
 from openbb_core.provider.utils.errors import EmptyDataError, OpenBBError
 from pydantic import Field
 
-from openbb_wmshare.models._statements import DOMAINS, WmshareStatementQueryParams
+from openbb_wmshare.models._statements import WmshareStatementQueryParams
 from openbb_wmshare.utils import call, get_client, parse_symbol, split_symbols
 from openbb_wmshare.utils.statements import compute_growth, pivot
 
@@ -79,16 +79,15 @@ async def _fetch_growth_rows(
     parsed = parse_symbol(symbol, default_market=market)
     if parsed.market != "cn":
         raise OpenBBError(
-            "wmshare publishes financial statements for A-shares only; "
+            "wmshare publishes statement growth for A-shares only; "
             f"{parsed.canonical} is a {parsed.market.upper()} symbol."
         )
     client = get_client(parsed.market, credentials)
     rows = await call(
-        client.call,
-        "rptdom.statement",
-        sym=parsed.code,
-        domain=DOMAINS[kind],
-        opts={"scope": "合并", "n": int(limit or 5)},
+        getattr(client.statements, kind),
+        symbol=parsed.code,
+        years=int(limit or 5),
+        scope="合并",
         context=f"statements.{kind}({parsed.canonical})",
     )
     records = compute_growth(pivot(rows or []), items)

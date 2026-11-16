@@ -4,7 +4,7 @@
 （2026-11-13，wmshare SDK 1.19.1，OpenBB Platform 5.0 / openbb-core 2.0.1）。未经验证的
 结论不写进来。
 
-图例：✅ 可用 ｜ ⚠️ 可用但有明确限制 ｜ ❌ 未注册（上游有数据，provider 未接）｜ ⛔ 上游无数据
+图例：✅ 可用 ｜ ⚠️ 可用但有明确限制 ｜ ❌ 未注册（上游有数据，provider 未接）｜ ⛔ 上游无数据 ｜ 🔒 代码就绪、待 script 统一入口部署后复验
 
 ---
 
@@ -16,9 +16,9 @@
 | `equity.price.quote` | EquityQuote | ✅ | ✅ | ✅ | ✅ |
 | `equity.search` | EquitySearch | ✅ | ✅ | ✅ | ✅ |
 | `equity.profile` | EquityInfo | ✅ | ⚠️ | ⚠️ | hk 行业名待实测；industry_name 走低成本 `industry_members` 路径 |
-| `equity.fundamental.income` | IncomeStatement | ✅ | ✅ | ✅ | 港美走 mkt 宽表（季度原币，2026-11-14 部署后 live） |
-| `equity.fundamental.balance` | BalanceSheet | ✅ | ✅ | ✅ | 同上 |
-| `equity.fundamental.cash` | CashFlowStatement | ✅ | ✅ | ✅ | 同上 |
+| `equity.fundamental.income` | IncomeStatement | ✅ | 🔒 | 🔒 | 全市场统一走 SDK 门面 `cli.statements`（`period=annual\|quarter`）；hk/us 待 script 统一入口部署后复验 |
+| `equity.fundamental.balance` | BalanceSheet | ✅ | 🔒 | 🔒 | 同上 |
+| `equity.fundamental.cash` | CashFlowStatement | ✅ | 🔒 | 🔒 | 同上 |
 | `equity.fundamental.metrics` | KeyMetrics | ✅ | ✅ | ✅ | ✅ 仅 10 码 |
 | `equity.fundamental.ratios` | FinancialRatios | ✅ | ⛔ | ⛔ | ⚠️ 本地重算 |
 | `equity.fundamental.dividends` | HistoricalDividends | ✅ | ✅ | ✅ | ✅ |
@@ -154,7 +154,7 @@ us.info.profile("AAPL")
 |---|---|
 | `equity.price.historical` | 区间 ≤1825 天/次、`limit` ≤500/次（provider 已自动切块）；日/周/月，**无分钟历史**（只有当日 `query_min1_live`） |
 | `equity.price.quote` | 无 bid/ask/买卖量/成交笔数/NBBO；`prev_close`/`change` 由 `close` 与 `percent` 反推 |
-| `equity.fundamental.*` | 三表**仅 A 股、仅年报**（`statement_years` 只认 `:Q4`）。港股/美股实测返回 `[]` |
+| `equity.fundamental.*` | 三表全市场（cn/hk/us）经 SDK 门面 `cli.statements` 供给，`period=annual`（缺省年报档）/`quarter`（季报全档 Q1..Q4 混合）；`scope` 合并/母公司与 growth/ratios 仅 cn。hk/us 行 k=披露科目原文，provider 侧 camel→snake+overrides 映射，币种按市场补 USD/HKD |
 | `equity.fundamental.metrics` | 上游有 **2752 个指标码**，provider 只声明了 10 个 |
 | `equity.fundamental.ratios` | **双口径**：最新一期用 curated `$码`（口径与平台一致），更早期次由三表本地派生（`$码` 无历史序列）。两类值都是小数。只用 curated 码——未精选的 `*_RATE`/`$SD` 返回原生百分数，混入会造成 ×100 错位 |
 | `equity.calendar.dividend` | 强制 `symbol`，OpenBB 模型语义是日期区间 → 无法服务全市场日历；美股 `ex_date` 出现 `2099-01-01` 占位值，需过滤 |

@@ -161,33 +161,35 @@ def test_hk_dividends_are_returned():
     assert all(row.symbol == "00700.HK" for row in result)
 
 
-def _mkt_deployed() -> bool:
-    """One-shot probe: does the gateway serve rptdom.mkt_* yet?
+def _unified_deployed() -> bool:
+    """One-shot probe: does the gateway's statement entry serve hk/us yet?
 
-    The script-repo commit that adds the mkt_* catalog functions is local
-    until the deploy gate; these tests skip (rather than fail) until then.
+    The script-repo commit that turns ``rptdom.statement`` into the all-market
+    entry (hk/us wide-table pivot + quarter mode) is local until the deploy
+    gate; these tests skip (rather than fail) until then.
     """
     try:
         import wmshare
 
-        us = wmshare.Client.from_env(market="us")
-        doc = us.call("rptdom.mkt_latest", sym="AAPL", domain="fin.income_statement")
-        return isinstance(doc, dict) and doc.get("annual") is not None
+        hk = wmshare.Client.from_env(market="hk")
+        rows = hk.statements.income("00700", years=1)
+        return bool(rows)
     except Exception:
         return False
 
 
-_mkt_ready = pytest.mark.skipif(
-    not _mkt_deployed(), reason="script repo mkt_* not deployed yet (deploy gate)"
+_unified_ready = pytest.mark.skipif(
+    not _unified_deployed(),
+    reason="script repo unified statement entry not deployed yet (deploy gate)",
 )
 
 
-@_mkt_ready
+@_unified_ready
 @pytest.mark.parametrize(
     ("symbol", "kind"),
     [("AAPL", "income"), ("00700.HK", "income"), ("AAPL", "balance"), ("AAPL", "cash")],
 )
-def test_hk_us_statements_via_mkt_wide_tables(symbol, kind):
+def test_hk_us_statements_via_unified_entry(symbol, kind):
     result = call(
         {"income": "IncomeStatement", "balance": "BalanceSheet", "cash": "CashFlowStatement"}[kind],
         symbol=symbol,
@@ -201,13 +203,13 @@ def test_hk_us_statements_via_mkt_wide_tables(symbol, kind):
     assert latest.currency in ("USD", "HKD")
 
 
-@_mkt_ready
-def test_cn_quarterly_sampling_q1():
-    """A2: cn statements accept sampling=Q1 (annual-report Q4 stays default)."""
-    result = call("IncomeStatement", symbol="600519.SH", limit=2, sampling="Q1").results
+@_unified_ready
+def test_cn_quarterly_reports():
+    """period=quarter serves quarterly reports (annual stays the default)."""
+    result = call("IncomeStatement", symbol="600519.SH", limit=4, period="quarter").results
 
     assert result
-    assert all(row.fiscal_period in ("Q1", "FY") for row in result)
+    assert any(row.fiscal_period in ("Q1", "Q2", "Q3", "Q4") for row in result)
 
 
 @requires_credentials

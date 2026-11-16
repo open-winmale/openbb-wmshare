@@ -441,47 +441,28 @@ def camel_to_snake(name: str) -> str:
     return text.strip("_").lower()
 
 
-def mkt_normalize(doc: dict[str, Any], market: str, kind: str) -> dict[str, Any]:
-    """Normalize one wide-table doc (hk/us) onto snake_case line items.
+def mkt_row_keys(
+    rows: list[dict[str, Any]],
+    market: str,
+    kind: str,
+) -> list[dict[str, Any]]:
+    """Map hk/us line-item row keys (native subject names) onto snake_case.
 
-    Mechanics: strip bookkeeping columns, mechanically convert camelCase to
-    snake_case, then apply the market+kind override map for semantic
-    alignments (``turnover`` → ``total_revenue``). Unmapped columns surface
-    under their converted names as extras — nothing is dropped or invented.
-    Period identity comes from the doc itself (``annual`` / ``sampling`` /
-    ``samplingEnd``), and ``currency`` from the doc's own currency fields.
+    Upstream serves hk/us statements as the same transposed shape as cn, with
+    ``k`` holding the market's own subject names (``basicEps``, ``turnover``).
+    Mechanics: mechanically convert camelCase to snake_case, then apply the
+    market+kind override map for semantic alignments (``turnover`` →
+    ``total_revenue``). Unmapped items keep their converted names — nothing is
+    dropped or invented. Rows are copied; the input list is not mutated.
     """
     overrides = MKT_FIELD_OVERRIDES.get(kind, {}).get(market, {})
-    record: dict[str, Any] = {}
-    currency = None
-    period_end = None
-    for key, value in doc.items():
-        if key in _META_KEYS:
-            continue
-        if key == "currency":
-            currency = value or None
-            continue
-        if key == "currencyName":
-            currency = currency or (value or None)
-            continue
-        if key == "samplingEnd" and value:
-            period_end = str(value)[:10]
-            continue
-        if key == "reportDate" and value and not period_end:
-            period_end = str(value)[:10]
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        key = str(row.get("k") or "").strip()
+        if not key or key in _META_KEYS:
             continue
         snake = camel_to_snake(key)
-        snake = overrides.get(snake, snake)
-        # An override target that already exists keeps the first (primary) value.
-        if snake in record:
-            continue
-        record[snake] = value
-
-    annual = doc.get("annual")
-    sampling = doc.get("sampling") or "Q4"
-    year, fiscal_period, derived_end = parse_period(f"{annual}:{sampling}")
-    record["fiscal_year"] = year
-    record["fiscal_period"] = fiscal_period
-    record["period_ending"] = period_end or derived_end
-    record["currency"] = currency or None
-    return record
+        mapped = dict(row)
+        mapped["k"] = overrides.get(snake, snake)
+        out.append(mapped)
+    return out

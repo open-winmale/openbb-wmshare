@@ -198,16 +198,17 @@ def test_cash_flow_maps_three_activities(fake_client):
     assert latest.net_cash_financing == pytest.approx(-40_000_000_000.0)
 
 
-def test_statements_serve_hk_us_via_mkt_wide_tables(fake_client):
-    """HK/US statements flow through rptdom.mkt_* wide-table functions."""
+def test_statements_serve_hk_us_via_facade(fake_client):
+    """HK/US statements ride the public cli.statements facade (k=native names)."""
     result = run(WmshareIncomeStatementFetcher, {"symbol": "AAPL", "limit": 2})
 
     assert len(result) == 2
     latest = result[0]
     assert latest.symbol == "AAPL"
     assert latest.period_ending is not None
-    assert latest.fiscal_year >= 2024
-    # mapped from the USGAAP columns (totalOperatingRevenue -> total_revenue)
+    assert latest.fiscal_year >= 2025
+    assert latest.currency == "USD"
+    # mapped from the native columns (totalOperatingRevenue -> total_revenue)
     assert latest.total_revenue is not None
 
 
@@ -761,14 +762,15 @@ def test_cbond_board_maps_camel_keys(fake_client):
 # ---------------------------------------------------------------- batch 2c
 
 
-def test_cn_statement_threads_sampling_to_upstream(fake_client):
-    """sampling rides the opts into rptdom.statement (A2 contract)."""
-    run(WmshareIncomeStatementFetcher, {"symbol": "600519", "limit": 2, "sampling": "Q1"})
+def test_cn_statement_threads_period_to_facade(fake_client):
+    """The period param rides the facade call (quarter = quarterly reports)."""
+    run(WmshareIncomeStatementFetcher, {"symbol": "600519", "limit": 2, "period": "quarter"})
 
-    assert fake_client.last_statement_opts.get("sampling") == "Q1"
+    assert fake_client.statements.last_kwargs.get("period") == "quarter"
 
 
-def test_cn_statement_default_sampling_is_q4(fake_client):
+def test_cn_statement_default_period_is_annual(fake_client):
+    """Default is annual; no sampling tier is sent upstream."""
     run(WmshareIncomeStatementFetcher, {"symbol": "600519", "limit": 2})
 
-    assert fake_client.last_statement_opts.get("sampling") == "Q4"
+    assert fake_client.statements.last_kwargs.get("period") == "annual"

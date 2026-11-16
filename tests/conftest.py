@@ -370,15 +370,113 @@ class _Kline:
         return False
 
 
+# hk/us rows via the unified cli.statements entry: same transposed shape as
+# cn, but k holds the market's native subject names (camelCase). The provider
+# maps them onto standard fields via camel->snake + market overrides.
+MKT_STATEMENTS: dict[str, list[dict]] = {
+    "income": [
+        {
+            "k": "totalOperatingRevenue",
+            "cn": "totalOperatingRevenue",
+            "vals": {"2026": 400_000_000_000.0, "2025": 385_000_000_000.0},
+        },
+        {
+            "k": "grossProfit",
+            "cn": "grossProfit",
+            "vals": {"2026": 190_000_000_000.0, "2025": 180_000_000_000.0},
+        },
+        {
+            "k": "parentNetProfit",
+            "cn": "parentNetProfit",
+            "vals": {"2026": 99_000_000_000.0, "2025": 95_000_000_000.0},
+        },
+        {"k": "basicEps", "cn": "basicEps", "vals": {"2026": 6.5, "2025": 6.1}},
+    ],
+    "balance": [
+        {
+            "k": "totalAsset",
+            "cn": "totalAsset",
+            "vals": {"2026": 350_000_000_000.0, "2025": 340_000_000_000.0},
+        },
+        {
+            "k": "totalLiab",
+            "cn": "totalLiab",
+            "vals": {"2026": 200_000_000_000.0, "2025": 190_000_000_000.0},
+        },
+        {
+            "k": "cashandCashEquivalents",
+            "cn": "cashandCashEquivalents",
+            "vals": {"2026": 60_000_000_000.0, "2025": 55_000_000_000.0},
+        },
+    ],
+    "cashflow": [
+        {
+            "k": "netCashFlowfromOperatingActivities",
+            "cn": "netCashFlowfromOperatingActivities",
+            "vals": {"2026": 90_000_000_000.0, "2025": 85_000_000_000.0},
+        },
+        {
+            "k": "endingCashandCashEquivalents",
+            "cn": "endingCashandCashEquivalents",
+            "vals": {"2026": 40_000_000_000.0, "2025": 37_000_000_000.0},
+        },
+    ],
+}
+
+_STATEMENT_DOMAINS = {
+    "income": "fin.income_statement",
+    "balance": "fin.balance_sheet",
+    "cashflow": "fin.cashflow_statement",
+}
+
+
 class _Statements:
-    def income(self, symbol: str, years: int = 5, scope: str = "合并", **_kw: Any) -> list[dict]:
-        return STATEMENTS["fin.income_statement"]
+    """Mirror of ``wmshare.api.StatementsApi``'s used surface (cn + hk/us rows).
 
-    def balance(self, symbol: str, years: int = 5, scope: str = "合并", **_kw: Any) -> list[dict]:
-        return STATEMENTS["fin.balance_sheet"]
+    Records the last call kwargs so contract tests can assert the period 二档
+    threading without a live gateway.
+    """
 
-    def cashflow(self, symbol: str, years: int = 5, scope: str = "合并", **_kw: Any) -> list[dict]:
-        return STATEMENTS["fin.cashflow_statement"]
+    last_kwargs: dict | None = None
+
+    def _rows(self, symbol: str, kind: str) -> list[dict]:
+        code = str(symbol or "").strip()
+        if code.isdigit() and len(code) == 6:  # A 股裸码 → cn LIST 投影行
+            return STATEMENTS[_STATEMENT_DOMAINS[kind]]
+        return MKT_STATEMENTS[kind]
+
+    def income(
+        self, symbol: str, years: int = 5, scope: str = "合并", period: str = "annual", **_kw: Any
+    ) -> list[dict]:
+        _Statements.last_kwargs = {
+            "symbol": symbol,
+            "years": years,
+            "scope": scope,
+            "period": period,
+        }
+        return list(self._rows(symbol, "income"))
+
+    def balance(
+        self, symbol: str, years: int = 5, scope: str = "合并", period: str = "annual", **_kw: Any
+    ) -> list[dict]:
+        _Statements.last_kwargs = {
+            "symbol": symbol,
+            "years": years,
+            "scope": scope,
+            "period": period,
+        }
+        return list(self._rows(symbol, "balance"))
+
+    def cashflow(
+        self, symbol: str, years: int = 5, scope: str = "合并", period: str = "annual", **_kw: Any
+    ) -> list[dict]:
+        _Statements.last_kwargs = {
+            "symbol": symbol,
+            "years": years,
+            "scope": scope,
+            "period": period,
+        }
+        return list(self._rows(symbol, "cashflow"))
 
     def years(self, symbol: str, kind: str = "income", **_kw: Any) -> list[str]:
         return STATEMENT_PERIODS
@@ -530,12 +628,6 @@ class FakeClient:
         **kwargs: Any,
     ) -> Any:
         """Emulate ``Client.call`` for the catalog functions the models use."""
-        if name == "rptdom.statement":
-            domain = kwargs.get("domain")
-            if domain not in STATEMENTS:
-                raise ValueError(f"unknown domain {domain!r}")
-            self.last_statement_opts = kwargs.get("opts") or {}
-            return STATEMENTS[domain]
         if name == "indices.members":
             return self.index.members(kwargs.get("key"))
         if name == "indices.weights":
@@ -548,15 +640,6 @@ class FakeClient:
             return self.kline.index_live_many(kwargs.get("keys") or [])
         if name == "stocks.industry_members":
             return self.industry_members(kwargs.get("ind"))
-        if name == "rptdom.mkt_latest":
-            return self.mkt_doc(kwargs.get("sym"), kwargs.get("domain"), 2026, "Q4")
-        if name == "rptdom.mkt_get":
-            return self.mkt_doc(
-                kwargs.get("sym"),
-                kwargs.get("domain"),
-                kwargs.get("annual"),
-                kwargs.get("sampling"),
-            )
         if name == "screener.query":
             return {
                 "count": 108,
@@ -580,53 +663,6 @@ class FakeClient:
     def industry_members(self, ind: str | None) -> list[dict]:
         """Emulate ``stocks.industry_members``: member rows of one industry."""
         return [{"symbol": "600519", "name": "贵州茅台", "industry": ind, "industry_name": "白酒"}]
-
-    def mkt_doc(
-        self, sym: str | None, domain: str | None, annual: int | None, sampling: str | None
-    ) -> dict | None:
-        """Emulate ``rptdom.mkt_get``: USGAAP/HK camelCase wide doc.
-
-        Only 2025/2026 Q4 exist; other periods return nil (the fetcher must
-        skip them, never as-of fill). Symbol determines the column flavor.
-        """
-        if (annual or 2026) not in (2025, 2026) or (sampling or "Q4") != "Q4":
-            return None
-        code = str(sym or "").upper()
-        if code == "AAPL":
-            return {
-                "accountingStandard": "USGAAP",
-                "annual": annual,
-                "sampling": sampling,
-                "samplingEnd": f"{annual}-09-27",
-                "currency": "USD",
-                "currencyName": "USD",
-                "totalOperatingRevenue": 400_000_000_000.0,
-                "operatingCost": 210_000_000_000.0,
-                "grossProfit": 190_000_000_000.0,
-                "operatingProfit": 120_000_000_000.0,
-                "netProfit": 100_000_000_000.0,
-                "parentNetProfit": 99_000_000_000.0,
-                "basicEps": 6.5,
-                "dilutedEps": 6.4,
-                "CreatedAt": "x",
-                "midx": 3,
-            }
-        return {
-            "accountingStandard": "HKFRS",
-            "annual": annual,
-            "sampling": sampling,
-            "samplingEnd": f"{annual}-12-31",
-            "currency": "HKD",
-            "currencyName": "HKD",
-            "turnover": 660_000_000_000.0,
-            "grossProfit": 350_000_000_000.0,
-            "operatingProfit": 180_000_000_000.0,
-            "netProfit": 160_000_000_000.0,
-            "parentNetProfit": 155_000_000_000.0,
-            "basicEps": 17.0,
-            "CreatedAt": "x",
-            "midx": 2,
-        }
 
     class _Screener:
         """Mirror of ``wmshare.api.ScreenerApi``'s used surface."""

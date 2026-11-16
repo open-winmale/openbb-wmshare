@@ -75,7 +75,7 @@
   `MARKET_PROFILE_EXCLUSIONS` 按市场裁剪（`openbb_wmshare/models/equity_info.py`）。
 - **修复建议**：未定义码应返回 null 而非整包失败。
 
-### S-2 `rptdom.statement` 港美返空，数据实际在库 — `fixed`（= GAPS A1）
+### S-2 `rptdom.statement` 港美返空，数据实际在库 — `fixed (v2)`（= GAPS A1；2026-11-16 方案升级为全市场统一入口，mkt_* 通路弃用、不再申请目录收录，待 script 部署后 live）
 
 - **症状**：`rptdom.statement` 对 `00700`/`AAPL` 返回 `[]`；但
   `store.get("fin.income", "us.AAPL", 2025, "Q4")` 返回 56 个 USGAAP 字段、
@@ -101,7 +101,7 @@
   （store.get 直读有数据，n=54）。跨市场三大表因此无法做「期间自动列举」，
   只能 latest 锚定 + 显式 (annual, sampling) 逐期取数。
 - **证据**：2026-11-14 键形矩阵探针（script 仓 tmp 探针，全部 0 期）。
-- **规避**：`rptdom.mkt_latest` doc 自带 `annual` 作回溯锚（provider `_fetch_mkt`）。
+- **规避**：宽表无期间列举 → script 层 latest 锚 `doc.annual` + 逐 (年, 档) 显式取数（`rptdom.mkt_pivot`，statement 内部实现；原 provider `_fetch_mkt` 通路已随统一入口移除）。
 - **修复建议**：v2 store 提供期间列举接口（listbs 兼容或 store.periods）。
 
 ---

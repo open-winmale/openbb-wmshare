@@ -31,7 +31,7 @@ from openbb_core.provider.standard_models.financial_ratios import (
 from openbb_core.provider.utils.errors import EmptyDataError, OpenBBError
 from pydantic import Field
 
-from openbb_wmshare.models._statements import DOMAINS, WmshareStatementQueryParams
+from openbb_wmshare.models._statements import WmshareStatementQueryParams
 from openbb_wmshare.utils import call, get_client, parse_symbol, split_symbols
 from openbb_wmshare.utils.statements import compute_ratios
 
@@ -127,11 +127,10 @@ class WmshareFinancialRatiosFetcher(
             statements = {}
             for kind in ("income", "balance"):
                 statements[kind] = await call(
-                    client.call,
-                    "rptdom.statement",
-                    sym=parsed.code,
-                    domain=DOMAINS[kind],
-                    opts={"scope": "合并", "n": years},
+                    getattr(client.statements, kind),
+                    symbol=parsed.code,
+                    years=years,
+                    scope="合并",
                     context=f"statements.{kind}({parsed.canonical})",
                 )
 
