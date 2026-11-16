@@ -19,8 +19,8 @@ STATEMENT_PERIODS = ["2025", "2024", "2023"]
 
 INCOME_ROWS = [
     {
-        "k": "total_revenue",
-        "cn": "营业收入",
+        "k": "operateIncome",
+        "cn": "operateIncome",
         "vals": {
             "2025": 168_838_102_514.79,
             "2024": 170_899_152_276.34,
@@ -28,96 +28,96 @@ INCOME_ROWS = [
         },
     },
     {
-        "k": "operating_cost",
-        "cn": "营业成本",
+        "k": "operateCost",
+        "cn": "operateCost",
         "vals": {"2025": 20_000_000_000.0, "2024": 21_000_000_000.0, "2023": 19_000_000_000.0},
     },
     {
-        "k": "operating_profit",
-        "cn": "营业利润",
+        "k": "operateProfit",
+        "cn": "operateProfit",
         "vals": {"2025": 120_000_000_000.0, "2024": 118_000_000_000.0, "2023": 100_000_000_000.0},
     },
     {
-        "k": "total_profit",
-        "cn": "利润总额",
+        "k": "totalProfit",
+        "cn": "totalProfit",
         "vals": {"2025": 121_000_000_000.0, "2024": 119_000_000_000.0, "2023": 101_000_000_000.0},
     },
     {
-        "k": "net_profit",
-        "cn": "净利润",
+        "k": "netProfit",
+        "cn": "netProfit",
         "vals": {"2025": 90_000_000_000.0, "2024": 88_000_000_000.0, "2023": 75_000_000_000.0},
     },
     {
-        "k": "np_parent",
-        "cn": "归母净利润",
+        "k": "parentNetProfit",
+        "cn": "parentNetProfit",
         "vals": {"2025": 88_000_000_000.0, "2024": 86_000_000_000.0, "2023": 74_000_000_000.0},
     },
-    {"k": "eps_basic", "cn": "基本每股收益", "vals": {"2025": 70.0, "2024": 68.0, "2023": 60.0}},
-    {"k": "__gm", "cn": "毛利率(派生)", "vals": {"2025": 0.88, "2024": 0.87, "2023": 0.87}},
+    {"k": "basicEps", "cn": "基本每股收益", "vals": {"2025": 70.0, "2024": 68.0, "2023": 60.0}},
+    {"k": "opinionType", "cn": "opinionType", "vals": {"2025": "标准无保留意见"}},
 ]
 
 BALANCE_ROWS = [
     {
-        "k": "total_assets",
-        "cn": "资产总计",
+        "k": "totalAsset",
+        "cn": "totalAsset",
         "vals": {"2025": 300_000_000_000.0, "2024": 270_000_000_000.0, "2023": 250_000_000_000.0},
     },
     {
-        "k": "total_liabilities",
-        "cn": "负债合计",
+        "k": "totalLiab",
+        "cn": "totalLiab",
         "vals": {"2025": 60_000_000_000.0, "2024": 55_000_000_000.0, "2023": 50_000_000_000.0},
     },
     {
-        "k": "total_equity",
-        "cn": "所有者权益合计",
+        "k": "totalEquity",
+        "cn": "totalEquity",
         "vals": {"2025": 240_000_000_000.0, "2024": 215_000_000_000.0, "2023": 200_000_000_000.0},
     },
     {
-        "k": "total_parent_equity",
-        "cn": "归母所有者权益",
+        "k": "equityAttributabletoParentCompanyShareholders",
+        "cn": "equityAttributabletoParentCompanyShareholders",
         "vals": {"2025": 230_000_000_000.0, "2024": 205_000_000_000.0, "2023": 190_000_000_000.0},
     },
     {
-        "k": "total_current_assets",
-        "cn": "流动资产合计",
+        "k": "totalCurrentAsset",
+        "cn": "totalCurrentAsset",
         "vals": {"2025": 200_000_000_000.0, "2024": 180_000_000_000.0, "2023": 170_000_000_000.0},
     },
     {
-        "k": "total_current_liabilities",
-        "cn": "流动负债合计",
+        "k": "totalCurrentLiab",
+        "cn": "totalCurrentLiab",
         "vals": {"2025": 50_000_000_000.0, "2024": 45_000_000_000.0, "2023": 40_000_000_000.0},
     },
     {
-        "k": "inventories",
-        "cn": "存货",
+        "k": "inventory",
+        "cn": "inventory",
         "vals": {"2025": 20_000_000_000.0, "2024": 18_000_000_000.0, "2023": 16_000_000_000.0},
     },
     {
-        "k": "monetary_funds",
-        "cn": "货币资金",
+        "k": "monetaryfunds",
+        "cn": "monetaryfunds",
         "vals": {"2025": 100_000_000_000.0, "2024": 90_000_000_000.0, "2023": 80_000_000_000.0},
     },
     {
-        "k": "accounts_receivable",
-        "cn": "应收账款",
+        "k": "accountsReceivable",
+        "cn": "accountsReceivable",
         "vals": {"2025": 5_000_000_000.0, "2024": 4_500_000_000.0, "2023": 4_000_000_000.0},
     },
 ]
 
 CASHFLOW_ROWS = [
     {
-        "k": "net_cash_operating",
-        "cn": "经营活动现金流量净额",
+        "k": "netCashFlowfromOperatingActivities",
+        "cn": "netCashFlowfromOperatingActivities",
         "vals": {"2025": 95_000_000_000.0, "2024": 90_000_000_000.0},
     },
     {
-        "k": "net_cash_investing",
-        "cn": "投资活动现金流量净额",
+        "k": "netCashFlowfromInvestingActivities",
+        "cn": "netCashFlowfromInvestingActivities",
         "vals": {"2025": -15_000_000_000.0, "2024": -12_000_000_000.0},
     },
     {
-        "k": "net_cash_financing",
-        "cn": "筹资活动现金流量净额",
+        "k": "netCashFlowfromFinancingActivities",
+        "cn": "netCashFlowfromFinancingActivities",
         "vals": {"2025": -40_000_000_000.0, "2024": -38_000_000_000.0},
     },
     {

@@ -176,12 +176,12 @@ def test_income_statement_pivots_to_period_rows(fake_client):
     assert latest.net_profit == pytest.approx(90_000_000_000.0)
 
 
-def test_income_statement_drops_derived_rows(fake_client):
-    """``__gm`` is a ratio row and must not surface as a statement field."""
+def test_income_statement_drops_meta_columns(fake_client):
+    """Wide-table bookkeeping columns (opinionType etc.) must not surface."""
     result = run(WmshareIncomeStatementFetcher, {"symbol": "600519", "limit": 1})
     dumped = result[0].model_dump()
-    assert "__gm" not in dumped
-    assert "gm" not in dumped
+    assert "opinion_type" not in dumped
+    assert "opinionType" not in dumped
 
 
 def test_balance_sheet_maps_assets_and_equity(fake_client):

@@ -23,10 +23,7 @@ from pydantic import Field
 from openbb_wmshare.utils import call, get_client, parse_symbol
 from openbb_wmshare.utils.statements import mkt_row_keys, pivot
 
-Scope = Literal["consolidated", "parent"]
 Period = Literal["annual", "quarter"]
-
-_SCOPE_LABEL: dict[str, str] = {"consolidated": "合并", "parent": "母公司"}
 
 _MARKET_CURRENCY: dict[str, str] = {"us": "USD", "hk": "HKD"}
 
@@ -41,18 +38,12 @@ class WmshareStatementQueryParams(QueryParams):
 
     __json_schema_extra__ = {
         "market": {"choices": ["cn", "hk", "us"]},
-        "scope": {"choices": ["consolidated", "parent"]},
         "period": {"choices": ["annual", "quarter"]},
     }
 
     market: Literal["cn", "hk", "us"] = Field(
         default="cn",
         description="Market segment: cn (A-share), hk (Hong Kong) or us.",
-    )
-    scope: Scope = Field(
-        default="consolidated",
-        description="'consolidated' (合并报表) or 'parent' (母公司报表). cn only — "
-        "hk/us wide tables have no parent-company basis.",
     )
     period: Period = Field(
         default="annual",
@@ -66,7 +57,6 @@ async def fetch_statement(
     symbol: str,
     *,
     limit: int | None,
-    scope: str = "consolidated",
     market: str = "cn",
     period: str = "annual",
     credentials: dict[str, str] | None = None,
@@ -78,13 +68,11 @@ async def fetch_statement(
         getattr(client.statements, kind),
         symbol=parsed.code,
         years=int(limit or 5),
-        scope=_SCOPE_LABEL.get(scope, "合并"),
         period=period,
         context=f"statements.{kind}({parsed.canonical})",
     )
-    if parsed.market != "cn":
-        rows = mkt_row_keys(rows or [], parsed.market, kind)
-    records = pivot(rows or [])
+    rows = mkt_row_keys(rows or [], parsed.market, kind)
+    records = pivot(rows)
     if not records:
         raise EmptyDataError(f"No statement data returned for {parsed.canonical}.")
     for record in records:

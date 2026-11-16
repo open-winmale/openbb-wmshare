@@ -33,7 +33,7 @@ from pydantic import Field
 
 from openbb_wmshare.models._statements import WmshareStatementQueryParams
 from openbb_wmshare.utils import call, get_client, parse_symbol, split_symbols
-from openbb_wmshare.utils.statements import compute_ratios
+from openbb_wmshare.utils.statements import compute_ratios, mkt_row_keys
 
 RATIO_CODES: dict[str, str] = {
     "gross_margin": "$GM",
@@ -130,11 +130,13 @@ class WmshareFinancialRatiosFetcher(
                     getattr(client.statements, kind),
                     symbol=parsed.code,
                     years=years,
-                    scope="合并",
                     context=f"statements.{kind}({parsed.canonical})",
                 )
 
-            symbol_rows = compute_ratios(statements["income"] or [], statements["balance"] or [])
+            symbol_rows = compute_ratios(
+                mkt_row_keys(statements["income"] or [], parsed.market, "income"),
+                mkt_row_keys(statements["balance"] or [], parsed.market, "balance"),
+            )
             for record in symbol_rows:
                 record["symbol"] = parsed.canonical
             if symbol_rows:

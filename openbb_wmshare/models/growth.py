@@ -29,7 +29,7 @@ from pydantic import Field
 
 from openbb_wmshare.models._statements import WmshareStatementQueryParams
 from openbb_wmshare.utils import call, get_client, parse_symbol, split_symbols
-from openbb_wmshare.utils.statements import compute_growth, pivot
+from openbb_wmshare.utils.statements import compute_growth, mkt_row_keys, pivot
 
 INCOME_ITEMS = [
     "total_revenue",
@@ -70,7 +70,6 @@ async def _fetch_growth_rows(
     symbol: str,
     *,
     limit: int | None,
-    scope: str,
     market: str,
     credentials: dict[str, str] | None,
     items: list[str],
@@ -87,10 +86,10 @@ async def _fetch_growth_rows(
         getattr(client.statements, kind),
         symbol=parsed.code,
         years=int(limit or 5),
-        scope="合并",
         context=f"statements.{kind}({parsed.canonical})",
     )
-    records = compute_growth(pivot(rows or []), items)
+    rows = mkt_row_keys(rows or [], parsed.market, kind)
+    records = compute_growth(pivot(rows), items)
     if not records:
         raise EmptyDataError(f"No statement data returned for {parsed.canonical}.")
     for record in records:
@@ -179,7 +178,6 @@ class WmshareIncomeStatementGrowthFetcher(
                     "income",
                     symbol,
                     limit=query.limit,
-                    scope=query.scope,
                     market=query.market,
                     credentials=credentials,
                     items=INCOME_ITEMS,
@@ -275,7 +273,6 @@ class WmshareBalanceSheetGrowthFetcher(
                     "balance",
                     symbol,
                     limit=query.limit,
-                    scope=query.scope,
                     market=query.market,
                     credentials=credentials,
                     items=BALANCE_ITEMS,
@@ -361,7 +358,6 @@ class WmshareCashFlowStatementGrowthFetcher(
                     "cashflow",
                     symbol,
                     limit=query.limit,
-                    scope=query.scope,
                     market=query.market,
                     credentials=credentials,
                     items=CASHFLOW_ITEMS,

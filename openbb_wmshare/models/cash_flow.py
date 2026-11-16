@@ -84,7 +84,6 @@ class WmshareCashFlowStatementFetcher(
                     "cashflow",
                     symbol,
                     limit=query.limit,
-                    scope=query.scope,
                     market=query.market,
                     period=query.period,
                     credentials=credentials,
