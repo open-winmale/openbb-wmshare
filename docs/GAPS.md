@@ -47,7 +47,7 @@ airflow**，卡点在 script 的暴露层和 provider 的适配层。
 
 ## 1. A 类缺口：数据在库、script 未暴露（最值得优先补）
 
-### A1. 港股 / 美股三大报表 ⭐ 最高价值（✅ 已定案：全市场统一入口，待 script 部署）
+### A1. 港股 / 美股三大报表 ⭐ 最高价值（✅ 闭环：2026-11-16 统一入口部署，hk/us live）
 
 **现状（2026-11-16）**：`rptdom.statement` 升级为全市场统一入口的 script 改动已本地提交
 （cn 走 LIST 投影；hk/us 内部路由宽表透视成同行式；mkt_* 摘目录注解降级内部实现），
@@ -106,7 +106,7 @@ eval 探测仅作**诊断**用途（证明数据在库、定位 A 类缺口）�
 服务路径只有一条：script 仓按标准流程补 `xs:catalog` 函数（见上文补法），provider 像
 消费其他 XS 接口一样接它。
 
-### A2. 季度报表（A 股季报）（✅ 已定案：sampling 扩 Q 季报全档，待 script 部署）
+### A2. 季度报表（A 股季报）（✅ 闭环：sampling=Q 部署，period=quarter live）
 
 **现状（2026-11-16）**：单季档（Q1..Q3）已在产线（a778aae7）；季报全档（sampling="Q"，
 Q1..Q4 混合、期键 "2026:Q1"、n 截总期数）在本地 script 提交中，随统一入口一并部署。
@@ -272,7 +272,7 @@ obb.wmshare.cbond_board()  # cbond.board
 
 ### 阶段 2：A 类 —— ✅ 已完成（2026-11-14 部署后 live 验证通过）
 
-- **A1+A2 重构（2026-11-16，一套接口定案）**：原 mkt_latest/mkt_get 双通路方案按用户边界原则收编——`rptdom.statement` 升级为全市场统一入口（cn 走 LIST 投影、hk/us 内部路由宽表透视成同行式，mkt_* 摘目录注解降级内部实现），sampling 扩 `Q` 季报全档（script 本地提交，**待部署门禁**）；SDK 门面 `cli.statements` 加 `period=annual|quarter` 二档 + `disc.notice` market 透传 + 文档机制三修（`3cac453`）；provider 单路径全走门面、`sampling` 参数换 OpenBB 惯例 `period` 二值。原 SDK 目录收录 `6c319b6`/`f931285`（v1.4.0/v1.5.0）已被上游 `b362ca7` 撤回，mkt_* 不再申请收录。
+- **A1+A2 重构（2026-11-16，一套接口定案）**：原 mkt_latest/mkt_get 双通路方案按用户边界原则收编——`rptdom.statement` 升级为全市场统一入口（cn 走 LIST 投影、hk/us 内部路由宽表透视成同行式，mkt_* 摘目录注解降级内部实现），sampling 扩 `Q` 季报全档（script 本地提交，**已部署 9cbba8ea/01202baa5**）；SDK 门面 `cli.statements` 加 `period=annual|quarter` 二档 + `disc.notice` market 透传 + 文档机制三修（`3cac453`）；provider 单路径全走门面、`sampling` 参数换 OpenBB 惯例 `period` 二值。原 SDK 目录收录 `6c319b6`/`f931285`（v1.4.0/v1.5.0）已被上游 `b362ca7` 撤回，mkt_* 不再申请收录。
 - **部署门禁**：script 仓 push main = 生产部署（原子 symlink + Redis 失效），**待用户明示确认后执行**；部署后跑 live 链路（hk.00700 / us.AAPL 三表 + cn 季报）并解锁 COVERAGE 的 🔒 行。
 
 **部署后验证清单**（push main 并等 CI `deploy` stage 完成后依次执行）：

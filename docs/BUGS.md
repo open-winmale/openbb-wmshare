@@ -75,7 +75,7 @@
   `MARKET_PROFILE_EXCLUSIONS` 按市场裁剪（`openbb_wmshare/models/equity_info.py`）。
 - **修复建议**：未定义码应返回 null 而非整包失败。
 
-### S-2 `rptdom.statement` 港美返空，数据实际在库 — `fixed (v2)`（= GAPS A1；2026-11-16 方案升级为全市场统一入口，mkt_* 通路弃用、不再申请目录收录，待 script 部署后 live）
+### S-2 `rptdom.statement` 港美返空，数据实际在库 — `fixed (v2)`（= GAPS A1；2026-11-16 统一入口部署 9cbba8ea，hk/us 三表 live：00700 HKD/AAPL USD 经 cli.statements 门面）
 
 - **症状**：`rptdom.statement` 对 `00700`/`AAPL` 返回 `[]`；但
   `store.get("fin.income", "us.AAPL", 2025, "Q4")` 返回 56 个 USGAAP 字段、
