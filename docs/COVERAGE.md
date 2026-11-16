@@ -16,7 +16,7 @@
 | `equity.price.quote` | EquityQuote | ✅ | ✅ | ✅ | ✅ |
 | `equity.search` | EquitySearch | ✅ | ✅ | ✅ | ✅ |
 | `equity.profile` | EquityInfo | ✅ | ⚠️ | ⚠️ | hk 行业名待实测；industry_name 走低成本 `industry_members` 路径 |
-| `equity.fundamental.income` | IncomeStatement | ✅ | ✅ | ✅ | 全市场统一走 SDK 门面 `cli.statements`（`period=annual\|quarter`）；2026-11-16 统一入口部署后 live（00700 HKD np_parent 2248 亿 / AAPL USD） |
+| `equity.fundamental.income` | IncomeStatement | ✅ | ✅ | ✅ | 全市场统一走 SDK 门面 `cli.statements`（`period=annual\|quarter`；三加一含 indicators）——SDK 内置读取脚本读 fin_* 宽表（专业版同款 window 批量），不依赖上游 script 部署 |
 | `equity.fundamental.balance` | BalanceSheet | ✅ | ✅ | ✅ | 同上（AAPL total_assets 4045 亿 USD live） |
 | `equity.fundamental.cash` | CashFlowStatement | ✅ | ✅ | ✅ | 同上 |
 | `equity.fundamental.metrics` | KeyMetrics | ✅ | ✅ | ✅ | ✅ 仅 10 码 |
