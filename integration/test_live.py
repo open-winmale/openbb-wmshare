@@ -65,6 +65,7 @@ def call(model: str, **params):
         "IncomeStatementGrowth": obb.equity.fundamental.income_growth,
         "BalanceSheetGrowth": obb.equity.fundamental.balance_growth,
         "CashFlowStatementGrowth": obb.equity.fundamental.cash_growth,
+        "WmshareScreener": obb.wmshare.screener,
     }[model]
     return command(**params, provider="wmshare")
 
@@ -249,6 +250,52 @@ def test_index_historical_serves_real_bars():
     # the wrong index (000300.INDEX is stale since 2024-12-06).
     latest = max(row.date for row in result)
     assert str(latest) >= "2026-09-01"
+
+
+def test_index_historical_rejects_non_daily_interval():
+    """Weekly/monthly index series do not exist upstream; the provider must say so.
+
+    OpenBB wraps the pydantic rejection in ``OpenBBError``; the cause is still the
+    ``Literal["1d"]`` on the query model.
+    """
+    with pytest.raises(OpenBBError, match=r"interval.*1d"):
+        call("IndexHistorical", symbol="index.hs300", interval="1M")
+
+
+@requires_credentials
+@pytest.mark.parametrize(
+    ("symbol", "interval", "start_date"),
+    [
+        # The 2015 start covers the pre-2016-09 monthly rows that carry volume=0
+        # upstream; that window used to raise DataError from the SDK guard.
+        ("600519", "1M", "2015-01-01"),
+        # Weekly is capped at ~10 years: one SDK page holds 500 bars and the
+        # provider's 1825-day chunking does not re-page within a chunk.
+        ("600519", "1W", "2021-01-01"),
+        ("AAPL", "1M", "2015-01-01"),
+        ("00700", "1M", "2015-01-01"),
+    ],
+)
+def test_aggregated_bars_across_markets(symbol, interval, start_date):
+    """Weekly/monthly bars must work for cn/hk/us, not just daily.
+
+    The SDK's ``volume_amount`` invariant used to reject these: ``volume*close/amount``
+    is month-end price over period VWAP, which drifts far outside [0.4, 2.5] for
+    aggregated periods (split months worst of all).
+    """
+    result = call(
+        "EquityHistorical",
+        symbol=symbol,
+        interval=interval,
+        start_date=start_date,
+        end_date="2026-11-16",
+    ).results
+
+    assert result, f"{symbol} {interval} returned nothing"
+    assert all(row.close and row.close > 0 for row in result)
+    # Aggregated periods must stay well below the daily bar count.
+    cap = 300 if interval == "1M" else 700
+    assert len(result) < cap, f"{symbol} {interval} returned {len(result)} bars, expected < {cap}"
 
 
 def test_index_bars_are_reachable_via_canonical_code():
@@ -518,6 +565,39 @@ def test_moneyflow_margin_cbond_live():
 
     cb = obb_helper().wmshare.cbond_board(provider="wmshare").to_df()
     assert len(cb) > 100 and "bond_code" in cb.columns
+
+
+@requires_credentials
+def test_index_search_resolves_a_query():
+    """Index key search hits the server-side universe list, not a bundled table."""
+    result = call("IndexSearch", query="沪深300").results
+
+    assert result
+    assert any(row.symbol.startswith("index.") for row in result)
+
+
+@requires_credentials
+def test_calendar_dividend_serves_an_upcoming_or_recent_event():
+    """The calendar view needs an explicit symbol; it is not a market-wide feed."""
+    result = call("CalendarDividend", symbol="600519").results
+
+    assert result
+    assert all(row.symbol == "600519.SH" for row in result)
+    assert any(row.ex_dividend_date is not None for row in result)
+
+
+@requires_credentials
+def test_screener_counts_hits_and_passes_codes_through():
+    """A `$code` expression must come back as a column plus a real hit count."""
+    result = call("WmshareScreener", where="$ROE_TTM_LAST > 0.15", limit=5)
+
+    assert result.results, "no rows matched; the expression or the catalog changed"
+    df = result.to_df()
+    assert "$ROE_TTM_LAST" in df.columns
+    assert (df["$ROE_TTM_LAST"] > 0.15).all()
+    # `count` is the whole-market hit count, not the row count.
+    count = (result.extra or {}).get("results_metadata", {}).get("count")
+    assert count is None or count >= len(result.results)
 
 
 def obb_helper():

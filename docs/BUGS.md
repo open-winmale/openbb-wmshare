@@ -62,6 +62,26 @@
 - **影响**：按 docstring 写的空值处理会 `AttributeError`。
 - **修复建议**：docstring 改为「交易日盘后 36h 内返回当日分时，否则 None」。
 
+### SDK-7 周/月 K 被 `volume_amount` 不变量误杀 — `fixed`（`7f818a4`，未随版本发布）
+
+- **症状**：`equity.price.historical(interval="1M", adjust="none")` 对 A股/美股必抛
+  `DataError: 不变量 volume_amount 违例`；`adj=qfq` 反而正常。
+- **根因**：`volume×close/amount` 恒等于「期末价 / 期内成交均价」。日线两者近似相等，
+  聚合周期天然偏离——实测月线 2,269 样本落在 `[0.07, 2.59]`、周线 3,600 样本
+  `[0.85, 1.15]`，套个股日线带 `[0.4, 2.5]` 会把正常序列判成单位漂移。
+  `kline.query_bars_period` 声明了该 checks，`query_bars_period_adj` 没声明
+  （yaml 注释「复权价不套」），于是只有不复权路径爆炸。
+- **触发实例**：AAPL / TSLA 2020-08 拆股月（ratio 0.32 / 0.35）、KO 2017-07（2.59）、
+  000001 早年月份（0.07，金额口径差异）；另有 A 股 2001-08~2016-08 月线 `volume=0`
+  而 `amount>0`（180/302 行），ratio 恒为 0。
+- **修复**：`market.kline.yaml` 给 `query_bars_period` 撤掉 `checks: [volume_amount]`
+  （domain 1.5.0 → 1.5.1）；`_check_volume_amount` 增加 `volume == 0` 跳过。日线
+  （`kline.query_bars` / `kline.query_last`）守卫不变。
+- **回归测试**：SDK `tests/test_units.py`（3 条）+ `tests/test_index_unit_contract.py`；
+  provider `integration/test_live.py::test_aggregated_bars_across_markets`（2015 起点月线）。
+- **发布状态**：代码已提交但未 bump 版本——同仓另一会话正在改 bonus/notice，发版需一并
+  重生成 openapi/API.md/llms。provider 走 editable 安装时已生效。
+
 ---
 
 ## script / 网关层（修复归属：script 仓，跨仓协同）

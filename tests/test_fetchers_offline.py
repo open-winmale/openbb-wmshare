@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 from openbb_core.provider.utils.errors import EmptyDataError, OpenBBError
+from pydantic import ValidationError
 
 from openbb_wmshare import wmshare_provider
 from openbb_wmshare.models.available_indices import WmshareAvailableIndicesFetcher
@@ -426,6 +427,35 @@ def test_index_historical_rejects_unresolvable_keys(fake_client):
             WmshareIndexHistoricalFetcher,
             {"symbol": "industry.S11", "start_date": "2026-01-02", "end_date": "2026-03-31"},
         )
+
+
+def test_index_historical_rejects_non_daily_interval(fake_client):
+    """Weekly/monthly index series do not exist upstream; fail instead of serving daily."""
+    for interval in ("1W", "1M", "weekly", "monthly"):
+        with pytest.raises(ValidationError, match="interval"):
+            run(
+                WmshareIndexHistoricalFetcher,
+                {
+                    "symbol": "index.hs300",
+                    "interval": interval,
+                    "start_date": "2026-01-02",
+                    "end_date": "2026-03-31",
+                },
+            )
+
+
+def test_index_historical_accepts_daily_interval_spellings(fake_client):
+    """The daily spellings people type must all resolve to the same query."""
+    for interval in ("1d", "1D", "d", "daily", "DAY", None):
+        query = WmshareIndexHistoricalFetcher.transform_query(
+            {
+                "symbol": "index.hs300",
+                "interval": interval,
+                "start_date": "2026-01-02",
+                "end_date": "2026-03-31",
+            }
+        )
+        assert query.interval == "1d", interval
 
 
 def test_all_fetchers_defer_credentials_to_the_sdk():

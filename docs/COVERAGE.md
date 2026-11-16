@@ -152,7 +152,8 @@ us.info.profile("AAPL")
 
 | 端点 | 限制 |
 |---|---|
-| `equity.price.historical` | 区间 ≤1825 天/次、`limit` ≤500/次（provider 已自动切块）；日/周/月，**无分钟历史**（只有当日 `query_min1_live`） |
+| `equity.price.historical` | 区间 ≤1825 天/次、`limit` ≤500/次（provider 已自动切块）；日/周/月，**无分钟历史**（只有当日 `query_min1_live`）。周线单次最多约 10 年（上游单页 500 根，provider 不在块内续页）；月线约 40 年 |
+| `index.price.historical` | **仅日频**：`interval` 只接受 `1d`（含 `d`/`day`/`daily` 别名），其它值直接报错——上游不发布周/月指数序列，静默降级成日线会误导 |
 | `equity.price.quote` | 无 bid/ask/买卖量/成交笔数/NBBO；`prev_close`/`change` 由 `close` 与 `percent` 反推 |
 | `equity.fundamental.*` | 三表全市场（cn/hk/us）经 SDK 门面 `cli.statements` 供给，`period=annual`（缺省年报档）/`quarter`（季报全档 Q1..Q4 混合）；`scope` 合并/母公司与 growth/ratios 仅 cn。hk/us 行 k=披露科目原文，provider 侧 camel→snake+overrides 映射，币种按市场补 USD/HKD |
 | `equity.fundamental.metrics` | 上游有 **2752 个指标码**，provider 只声明了 10 个 |

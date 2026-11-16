@@ -29,7 +29,7 @@ from openbb_core.provider.standard_models.index_historical import (
     IndexHistoricalQueryParams,
 )
 from openbb_core.provider.utils.errors import EmptyDataError, OpenBBError
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from openbb_wmshare.utils import (
     call,
@@ -56,13 +56,42 @@ class WmshareIndexHistoricalQueryParams(IndexHistoricalQueryParams):
 
     __json_schema_extra__ = {
         "symbol": {"multiple_items_allowed": True},
+        "interval": {"choices": ["1d", "1D", "d", "day", "daily"]},
         "market": {"choices": ["cn"]},
     }
 
+    interval: str = Field(
+        default="1d",
+        description="Time interval of the data. wmshare publishes index bars at daily "
+        "frequency only; weekly and monthly index series do not exist upstream, so any "
+        "other value is rejected rather than silently served as daily. Accepts "
+        "'1d' / '1D' / 'd' / 'day' / 'daily'.",
+    )
     market: Literal["cn"] = Field(
         default="cn",
         description="Market segment. wmshare index bar history covers A-share indices only.",
     )
+
+    @field_validator("interval", mode="before", check_fields=False)
+    @classmethod
+    def _normalize_interval(cls, v: object) -> object:
+        """Collapse the daily spellings to '1d'; reject everything else loudly.
+
+        The field is ``str`` rather than ``Literal["1d"]`` on purpose: a Literal
+        would reject 'daily'/'D' inside pydantic before this validator runs, so the
+        accepted spellings live here and in ``__json_schema_extra__["interval"]``.
+        """
+        if v is None:
+            return "1d"
+        if isinstance(v, str):
+            token = v.strip().lower()
+            if token in {"1d", "d", "day", "daily"}:
+                return "1d"
+            raise ValueError(
+                f"interval {v!r} is not supported: wmshare index bars are daily only "
+                "(use '1d'), because upstream publishes no weekly or monthly index series."
+            )
+        return v
 
 
 class WmshareIndexHistoricalData(IndexHistoricalData):
