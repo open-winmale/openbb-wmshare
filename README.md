@@ -110,9 +110,9 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 | `equity.calendar.earnings` | cn | 预约披露日历（**symbol 必填**） |
 | `equity.estimates.forward_eps` / `.forward_pe` | cn | 机构逐行预测 + 近六月平均聚合行 |
 | `equity.fundamental.income_growth` / `.balance_growth` / `.cash_growth` | cn | 行项 YoY（本地派生，零基为 None） |
-| `equity.fundamental.income` | cn / hk* / us* | 利润表（hk/us 走跨市场宽表，季度原币——**待 script 仓部署后 live**） |
-| `equity.fundamental.balance` | cn / hk* / us* | 资产负债表（同上） |
-| `equity.fundamental.cash` | cn / hk* / us* | 现金流量表（同上） |
+| `equity.fundamental.income` | cn / hk / us | 利润表（`period=annual\|quarter`，披露原币；SDK 自带读取脚本读 fin_* 宽表，不依赖上游部署） |
+| `equity.fundamental.balance` | cn / hk / us | 资产负债表（同上） |
+| `equity.fundamental.cash` | cn / hk / us | 现金流量表（同上） |
 | `equity.fundamental.metrics` | cn / hk / us | PE/PB/PS/ROE/股息率/PE 十年分位 |
 | `equity.fundamental.ratios` | cn | 毛利率/净利率/ROE/ROA/流动比率等；最新期取平台指标，历史期本地派生 |
 | `equity.fundamental.dividends` | cn / hk / us | 分红历史明细 |
@@ -142,6 +142,39 @@ hits = obb.equity.search(query="茅台", provider="wmshare").to_df()
 - **区间上限**：上游单次查询上限 5 年（1825 天），provider 会自动切块拼接，但长区间会放大
   请求数——默认窗口是最近一年。
 - **限流**：不内置本地缓存。请按需缩小区间或减少标的数，避免触发配额。
+- **`to_df()` 的索引**：带日期语义的行若模型里有 `date` / `period_ending` 字段，OpenBB 会把它
+  提为 DataFrame 索引而不是列（如 `obb.wmshare.moneyflow(...).to_df()` 的索引是交易日）。
+  要用列形式时用 `.reset_index()`。
+
+## 三种用法
+
+### 1. Python SDK
+
+```python
+from openbb import obb
+
+df = obb.equity.fundamental.income(symbol="600519", provider="wmshare", limit=3).to_df()
+```
+
+返回 `OBBject`：`.results` 是 Pydantic 模型列表，`.to_df()` 转 DataFrame，
+`.to_dict()` / `.to_json()` 亦可。`provider="wmshare"` 必须显式传（OpenBB 不自动选）。
+
+### 2. REST API（本地服务）
+
+```bash
+openbb-api --port 7788          # 启动，Swagger UI 在 /docs，ReDoc 在 /redoc
+curl "http://127.0.0.1:7788/api/v1/equity/fundamental/income?provider=wmshare&symbol=600519&limit=3"
+```
+
+界面里每个操作都能点 **Try it out** 填参数直接执行，等价于上面这条 curl。
+
+### 3. MCP（给 AI 客户端用）
+
+```bash
+openbb-mcp                      # 以 MCP server 形式暴露全部命令
+```
+
+需要 OpenBB 的 MCP 配置项，详见 OpenBB 官方文档。
 
 ## 开发
 

@@ -47,12 +47,13 @@ airflow**，卡点在 script 的暴露层和 provider 的适配层。
 
 ## 1. A 类缺口：数据在库、script 未暴露（最值得优先补）
 
-### A1. 港股 / 美股三大报表 ⭐ 最高价值（✅ 闭环：2026-11-16 统一入口部署，hk/us live）
+### A1. 港股 / 美股三大报表 ⭐ 最高价值（✅ 已闭环：hk/us live）
 
-**现状（2026-11-16）**：`rptdom.statement` 升级为全市场统一入口的 script 改动已本地提交
-（cn 走 LIST 投影；hk/us 内部路由宽表透视成同行式；mkt_* 摘目录注解降级内部实现），
-SDK 门面与 provider 已切换（`period=annual|quarter`），**hk/us 三表待 script push 部署后 live**。
-下述旧探测记录保留作历史依据。
+**现状（2026-11-16）**：最终方案改为 **SDK 侧自实现**——`cli.statements` 三加一
+（income/balance/cashflow/indicators × cn/hk/us）由 SDK 内置读取脚本直读
+`fin_income`/`fin_balance`/`fin_cashflow`/`fin_indicator` 宽表（专业版同款
+`store.query(window)` 批量姿势），**对上游 script 零依赖**，provider 无需等待任何部署。
+早期的 `rptdom.statement` 统一入口方案已废弃并回退。下图/下文旧探测记录保留作历史依据。
 
 实测（注意必须用对应市场的 client，`cn` client 查港股会报 `MARKET_MISMATCH`）：
 
